@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/glyph.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#dedee0" media="(prefers-color-scheme: light)" />
+    <meta
+      name="description"
+      content="Tyche. Forty random Ethereum keypairs a roll, read against the chain."
+    />
+    <title>Tyche</title>
+    <!-- The two weights the first screen is built from, fetched in parallel
+         with the stylesheet that declares them rather than after it. -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/ibm-plex-mono-400-latin.woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/ibm-plex-mono-600-latin.woff2"
+      crossorigin
+    />
+    <script>
+      // Resolve the medium before first paint so the tube never flashes on
+      // paper. The cookie is written on `.unmod.fun`, so a choice made on the
+      // index or on any other project carries here and back again.
+      (function () {
+        var m = document.cookie.match(/(?:^|;\s*)unmod-theme=(dark|light)/);
+        var t = m ? m[1] : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

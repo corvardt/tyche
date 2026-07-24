@@ -1,0 +1,352 @@
+@import 'tailwindcss/base';
+
+@import 'tailwindcss/components';
+
+@import 'tailwindcss/utilities';
+
+/* ── Type ───────────────────────────────────────────────────────────────────
+   Served from this origin, not from Google. An app whose whole point is that
+   your keys never leave your machine has no business handing every visitor's
+   IP to a third party for a typeface. Files carried from the shared medium. */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-500-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-600-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* The ext subsets only load if something on the page actually needs them. */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-600-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+@layer base {
+  /* ── Tube ────────────────────────────────────────────────────────────────
+     Light emitted on black. White is reserved: nothing in this interface
+     reaches it except an address that actually holds ether. */
+  :root,
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+
+    --c-void: #0a0a0b;
+    --c-panel: #0f0f11;
+    --c-line: #26262b;
+    --c-land: #4c4c55;
+    --c-dim: #7b7b81;
+    --c-text: #c8c8cc;
+    --c-strike: #ffffff;
+
+    --ink-hot: #ffffff;
+    --ink-rest: #c8c8cc;
+    --scan: rgba(255, 255, 255, 0.05);
+    --sweep: rgba(255, 255, 255, 0.028);
+    --vignette: rgba(0, 0, 0, 0.62);
+    --bloom: rgba(255, 255, 255, 0.14);
+    --bloom-hot: rgba(255, 255, 255, 0.3);
+  }
+
+  /* ── Paper ───────────────────────────────────────────────────────────────
+     The other readout: ink on a chart recorder's roll. A tube cannot be
+     inverted, so light mode changes medium instead. Black takes over the
+     reserved role; cool neutral stock, never cream. */
+  :root[data-theme='light'] {
+    color-scheme: light;
+
+    --c-void: #dedee0;
+    --c-panel: #e7e7e9;
+    --c-line: #c2c2c6;
+    --c-land: #9a9aa2;
+    --c-dim: #626268;
+    --c-text: #2a2a2e;
+    --c-strike: #000000;
+
+    --ink-hot: #000000;
+    --ink-rest: #2a2a2e;
+    --scan: rgba(0, 0, 0, 0.045);
+    --sweep: rgba(0, 0, 0, 0.022);
+    --vignette: rgba(0, 0, 0, 0.14);
+    /* Ink bleeds into paper fibres rather than glowing. */
+    --bloom: rgba(0, 0, 0, 0.16);
+    --bloom-hot: rgba(0, 0, 0, 0.28);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-void text-text font-mono text-sm antialiased;
+    /* Digits must not jitter as readouts tick. */
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-1 ring-text ring-offset-2 ring-offset-void;
+  }
+}
+
+/* ── Phosphor bloom ─────────────────────────────────────────────────────────
+   Lit pixels bleed into the glass. Reserved for live values, never for labels:
+   the glow marks what is actually reading. */
+.glow {
+  text-shadow: 0 0 6px var(--bloom);
+}
+
+.glow-hot {
+  text-shadow: 0 0 10px var(--bloom-hot);
+}
+
+/* ── The decay rule ─────────────────────────────────────────────────────────
+   Anything that arrives comes in at full white and settles into the gray of
+   the interface. A batch of forty keys is forty things arriving. */
+@keyframes settle {
+  from {
+    color: var(--ink-hot);
+    text-shadow: 0 0 10px var(--bloom-hot);
+  }
+  to {
+    color: var(--ink-rest);
+    text-shadow: 0 0 6px var(--bloom);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes seek {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.settle {
+  animation: settle 1.4s ease-out;
+}
+
+/* The spatial half of the same rule: a batch that lands fades up rather than
+   cutting in, so a roll reads as an exposure being made. */
+@keyframes arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.arrive {
+  animation: arrive 320ms ease-out;
+}
+
+.breathe {
+  animation: breathe 2.8s ease-in-out infinite;
+}
+
+.seek {
+  animation: seek 1.6s ease-in-out infinite;
+}
+
+/* ── The glass ──────────────────────────────────────────────────────────────
+   Sits above everything, catches no pointer events, and is the only place the
+   retro treatment lives; the components underneath stay clean. */
+.crt-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--scan) 0px,
+    var(--scan) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.crt-vignette {
+  background: radial-gradient(125% 105% at 50% 50%, transparent 52%, var(--vignette) 100%);
+}
+
+@keyframes refresh-sweep {
+  from {
+    transform: translateY(-14vh);
+  }
+  to {
+    transform: translateY(104vh);
+  }
+}
+
+.crt-sweep {
+  height: 14vh;
+  background: linear-gradient(to bottom, transparent, var(--sweep), transparent);
+  animation: refresh-sweep 7.5s linear infinite;
+  /* Promised to the compositor so it moves as a layer instead of repainting
+     the glass beneath it. */
+  will-change: transform;
+}
+
+/* ── HUD frame ──────────────────────────────────────────────────────────────
+   Corner ticks instead of full borders: the frame reads as an instrument bezel
+   and leaves the edges of the sheet open. */
+.tick {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-color: var(--c-land);
+  pointer-events: none;
+}
+
+/* ── The sheet ──────────────────────────────────────────────────────────────
+   Forty keys is a contact sheet, not a gallery: cells butt against a single
+   hairline so the batch reads as one exposure. The count is fixed at 40, so
+   the column count is stated rather than auto-filled: a row of 7 orphans on
+   one line would break the block. */
+.sheet {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--c-line);
+  border: 1px solid var(--c-line);
+}
+
+@media (min-width: 640px) {
+  .sheet {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+
+/* The favourites sheet holds an unknown number, so it fills instead. */
+.sheet-fill {
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+}
+
+.cell {
+  position: relative;
+  aspect-ratio: 1;
+  background: var(--c-void);
+  overflow: hidden;
+}
+
+/* ── The identicons ─────────────────────────────────────────────────────────
+   The one thing on the tube that keeps its own colour. An identicon is derived
+   from the address itself, so its palette is data, and desaturating it into the
+   medium would throw away the only property that makes forty of them tellable
+   apart at a glance. They sit at rest slightly under full strength so the
+   reserved white still outranks them, and come up to full on approach. */
+.blockie {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  filter: saturate(0.92) brightness(0.94);
+  transition:
+    filter 140ms linear,
+    opacity 140ms linear;
+}
+
+/* Hover and keyboard land in the same state, because they mean the same
+   thing: this is the key you are about to act on. */
+.cell:hover .blockie,
+.cell:focus-within .blockie {
+  filter: saturate(1.05) brightness(1.08);
+}
+
+/* ── The hit ────────────────────────────────────────────────────────────────
+   The one event the whole instrument exists to catch. It is the only thing
+   allowed to reach the reserved white, and it keeps beating so a found key
+   cannot be scrolled past. */
+.cell-hit {
+  /* The blockie fills the cell, so the strike reads as a ring cut into it
+     rather than as a background nothing can see. */
+  outline: 2px solid var(--c-strike);
+  outline-offset: -2px;
+  box-shadow: 0 0 12px var(--bloom-hot);
+  z-index: 1;
+}
+
+.cell-hit .blockie {
+  filter: none;
+}
+
+/* Everything that missed steps back so the hit is the only thing reading. */
+.cell-missed .blockie {
+  opacity: 0.28;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--c-line);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--c-land);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settle,
+  .arrive,
+  .breathe,
+  .seek,
+  .crt-sweep {
+    animation: none;
+  }
+}

@@ -71,30 +71,3 @@ deployment that wants one; see `.env.example` for why you probably do not.
 | `src/components/Crt.jsx` | The glass: scanlines, vignette, refresh sweep. The only place the retro treatment lives |
 | `src/index.css` | The shared medium, carried from Keraunos: both palettes, the type, the glass, the decay rule. Plus the sheet, which is this project's own |
 | `public/fonts/` | IBM Plex Mono, three weights, latin and latin-ext |
-
-## Notes
-
-White is reserved. Nothing in the interface reaches it except an address that
-actually holds ether, which is the one event the thing exists to catch. Every
-other state is built out of `dim`, `land` and `text`.
-
-Identicons are the single exception to the monochrome palette. Their colour is
-computed from the address, so it is data rather than decoration, and
-desaturating them into the medium would throw away the only property that makes
-forty of them tellable apart at a glance. They sit slightly under full strength
-at rest so the reserved white still outranks them.
-
-Generation is independent of the network. An earlier version replaced the fresh
-batch with the previous one whenever a lookup failed, which with no key
-configured meant forty valid keypairs were generated and discarded before paint
-on every roll: a blank grid and a disabled save button with nothing on screen to
-explain why. A failed lookup now keeps the batch and reports itself.
-
-There is no router. One page, mounted at whatever path it is served from.
-
-The typeface is served from this origin. An app whose entire premise is that
-your keys never leave your machine has no business handing every visitor's IP to
-Google for a font. Plex Mono ships no Greek subset, so the `Ξ` in the readouts
-falls to the system mono.
-
-Everything animated is switched off under `prefers-reduced-motion`.

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { KEYS_PER_ROLL, STORAGE_KEYS } from '../config';
+import { KEYS_PER_ROLL, SHEET_MIN_MS, STORAGE_KEYS } from '../config';
 import { fundedChains, generateAccountsProgressively, isFunded } from '../lib/accounts';
 import { mightContain } from '../lib/bloom';
 import { chainName } from '../lib/chains';
@@ -63,6 +63,11 @@ export function useScanner({
 
   /** Counts rolls for the telemetry line, so its traffic can be followed. */
   const rollNumber = useRef(0);
+
+  // When the sheet last changed. Auto runs flat out; the display does not have
+  // to keep up with it, and should not try — drawing a batch means encoding an
+  // identicon per cell, which costs more than making the keys did.
+  const lastShown = useRef(0);
 
   // `halted` is mirrored into a ref because the guard inside `roll` has to read
   // it synchronously. Resuming sets state and then rolls in the same tick, and a
@@ -142,14 +147,15 @@ export function useScanner({
       `#${rollNumber.current} · ${keysPerRoll} keys · ${(chains ?? []).length || 1} chain(s)${testMode ? ' · test' : ''}`,
     );
 
-    setResolved(0);
-
-    // The sheet empties to the size of the coming batch and fills as the keys
-    // are made. It used to hold the previous batch in place until the new one
-    // had fully resolved, on the reasoning that an unread batch had nothing to
-    // show; it has an identicon from the moment each key exists.
-    setPreviousAccounts((previous) => (accounts.length > 0 ? accounts : previous));
-    setAccounts([]);
+    // A batch is drawn only if the last one has had its time on screen. The
+    // rest are still generated, screened, counted and checked for a find —
+    // they are simply not rendered, and so cost no identicons.
+    const show = Date.now() - lastShown.current >= SHEET_MIN_MS;
+    if (show) {
+      lastShown.current = Date.now();
+      setResolved(0);
+      setPreviousAccounts((previous) => (accounts.length > 0 ? accounts : previous));
+    }
 
     // Generation is inside the try: it yields to the browser now, so it is a
     // place a roll can fail, and a throw out here would leave `inFlight` set
@@ -161,9 +167,21 @@ export function useScanner({
       batch = await generateAccountsProgressively({
         testMode,
         count: keysPerRoll,
-        onChunk: (made) => {
-          if (mounted.current) setAccounts(made);
-        },
+        // A drawn batch fills the grid in twenties; an undrawn one only yields
+        // coarsely, enough to keep the page responsive without paying for a
+        // frame it has nothing to put in.
+        chunk: show ? 20 : 100,
+        // The new batch is written over the old one where it stands rather
+        // than the sheet being cleared first. Clearing meant a full grid, an
+        // empty grid and a refill every time — at four hundred milliseconds
+        // that is a flash, not an animation. Overwriting in place leaves the
+        // sheet always full, and the new keys wipe across it.
+        onChunk: show
+          ? (made) => {
+              if (!mounted.current) return;
+              setAccounts((previous) => [...made, ...previous.slice(made.length, keysPerRoll)]);
+            }
+          : undefined,
       });
 
       if (!mounted.current) return;
@@ -219,9 +237,15 @@ export function useScanner({
         balances: balances.get(account.address.toLowerCase()) ?? {},
       }));
 
-      setAccounts(scanned);
-      setPreviousAccounts(scanned);
-      setResolved(batch.length);
+      // A find is always drawn, whatever the display was doing: it stops the
+      // machine, and it is the one thing this exists to show.
+      const found = scanned.some(isFunded);
+      if (show || found) {
+        lastShown.current = Date.now();
+        setAccounts(scanned);
+        setPreviousAccounts(scanned);
+        setResolved(batch.length);
+      }
       setHasScanned(true);
       setProgress(100);
       setElapsedMs(Date.now() - started);

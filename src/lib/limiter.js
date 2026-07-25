@@ -1,13 +1,14 @@
-import { ETHERSCAN_CALLS_PER_SECOND } from '../config';
+import { ETHERSCAN_CALLS_PER_SECOND, ETHERSCAN_RATE_SAFETY } from '../config';
 import { emit } from './telemetry';
 
 /**
  * Spaces outgoing Etherscan calls so a roll cannot outrun the plan.
  *
- * A single-chain roll of forty is two calls, and auto mode fires one roll every
- * two seconds: one call a second, comfortably inside the free tier's three. Add
- * chains and that multiplies — three chains at the same cadence sits exactly on
- * the ceiling, and any more goes through it. Answering a rate limit by retrying
+ * This used to be a backstop. Auto rolled on a two-second timer, which held a
+ * single chain to about a call a second on its own, and the limiter existed for
+ * the settings that multiplied past the ceiling. Auto runs continuously now, so
+ * nothing else spaces anything: this is the only thing standing between a roll
+ * and the plan's rate, under every setting. Answering a rate limit by retrying
  * into it is the one response guaranteed not to clear it.
  *
  * The queue is a single chain of promises rather than a token bucket: requests
@@ -15,14 +16,7 @@ import { emit } from './telemetry';
  * a burst allowance. Everything funnels through `schedule`, so the limit holds
  * across chains, batches and concurrent rolls alike.
  */
-/**
- * Aim slightly under the stated ceiling. Spacing calls at exactly the limit
- * puts every call on the boundary of whatever window the far end measures, and
- * the cost of being wrong is a rejected roll; the cost of being 10% slow is
- * nothing anyone can see.
- */
-const SAFETY = 0.9;
-const MIN_INTERVAL_MS = 1000 / (ETHERSCAN_CALLS_PER_SECOND * SAFETY);
+const MIN_INTERVAL_MS = 1000 / (ETHERSCAN_CALLS_PER_SECOND * ETHERSCAN_RATE_SAFETY);
 
 let tail = Promise.resolve();
 let lastStart = 0;
@@ -41,8 +35,8 @@ export function schedule(task) {
     const since = Date.now() - lastStart;
     if (since < MIN_INTERVAL_MS) {
       const held = Math.round(MIN_INTERVAL_MS - since);
-      // Worth saying out loud: this is the only reason auto can run slower
-      // than the two seconds it advertises, and it is otherwise invisible.
+      // Worth saying out loud: on an unscreened run this is what auto is
+      // waiting on for most of its time, and it is otherwise invisible.
       emit('throttle', `held ${held}ms · ${ETHERSCAN_CALLS_PER_SECOND}/s cap`);
       await wait(held);
     }

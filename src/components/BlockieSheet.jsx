@@ -49,7 +49,11 @@ function BlockieSheet({
 
         return (
           <div
-            key={account.address}
+            // Keyed by position, not address. A cell is a slot on a contact
+            // sheet: when a new batch is written over the old one, this swaps
+            // the image in place instead of unmounting two hundred nodes and
+            // mounting two hundred more.
+            key={index}
             // Twenty land at a time, so they are staggered inside their own
             // group: the batch develops as a quick wave rather than a switch.
             style={{ '--i': index % 20 }}

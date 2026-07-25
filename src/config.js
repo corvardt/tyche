@@ -15,10 +15,28 @@ export const ETHERSCAN_BATCH_SIZE = 20;
  * Source: https://docs.etherscan.io/resources/rate-limits
  */
 export const ETHERSCAN_CALLS_PER_SECOND = 3;
+
+/**
+ * Aim under the stated rate rather than exactly at it. Spacing calls on the
+ * limit puts every one on the boundary of whatever window the far end measures,
+ * and a rejected roll costs more than being a tenth slow.
+ */
+export const ETHERSCAN_RATE_SAFETY = 0.9;
 export const ETHERSCAN_CALLS_PER_DAY = 100_000;
 
-/** Delay between rolls while auto mode is running. */
-export const AUTO_ROLL_INTERVAL_MS = 2000;
+/**
+ * How long a batch stays on screen before another may replace it.
+ *
+ * Auto used to roll on a two-second timer, which made sense when a roll cost
+ * two API calls and 300ms of key generation. It does not now: screening removes
+ * the API from an ordinary roll entirely, so the pause was the slowest thing
+ * left. Auto rolls continuously instead, and this is the one thing still paced
+ * — a display constraint, not a rate limit. Batches that land inside it are
+ * still generated, screened and counted; they are simply not drawn, which also
+ * spares them their identicons. Encoding two hundred of those costs ~266ms,
+ * more than making the keys in the first place.
+ */
+export const SHEET_MIN_MS = 400;
 
 /**
  * Consecutive failed rolls before auto mode switches itself off. A wrong key or

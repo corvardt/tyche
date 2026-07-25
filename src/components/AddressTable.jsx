@@ -76,7 +76,7 @@ function AddressTable({
 
             return (
               <tr
-                key={account.address}
+                key={index}
                 style={{ '--i': index % 20 }}
                 className={`group border-t border-line first:border-t-0 ${
                   latent ? 'row-latent' : 'row-read'

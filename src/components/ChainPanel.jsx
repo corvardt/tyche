@@ -51,26 +51,24 @@ export default function ChainPanel({ open, chains, keysPerRoll, onToggle, onClos
           <dt className="text-dim">calls / roll</dt>
           <dd className="text-right text-text">{cost.callsPerRoll}</dd>
 
-          <dt className="text-dim">calls / sec on auto</dt>
-          <dd className={`text-right ${cost.overRateLimit ? 'glow-hot text-strike' : 'text-text'}`}>
-            {cost.callsPerSecond.toFixed(1)} / 3
-          </dd>
+          <dt className="text-dim">paced at</dt>
+          <dd className="text-right text-text">{cost.callsPerSecond.toFixed(1)} calls / sec</dd>
 
+          {/* Plain, not hot. This is now the same number under every selection,
+              so colouring it as an exceedance made it a light that was always
+              on. What the switches move is the row below. */}
           <dt className="text-dim">daily allowance spent in</dt>
-          <dd className={`text-right ${cost.overDailyLimit ? 'glow-hot text-strike' : 'text-text'}`}>
-            {cost.hoursToDailyCap < 24 ? `${cost.hoursToDailyCap.toFixed(1)}h` : 'never'}
-          </dd>
+          <dd className="text-right text-text">{cost.hoursToDailyCap.toFixed(1)}h</dd>
 
           <dt className="text-dim">keys / day at the cap</dt>
           <dd className="text-right text-text">{formatCount(Math.round(cost.keysPerDay))}</dd>
         </dl>
 
-        {cost.overRateLimit && (
-          <p className="glow mt-2 text-xs text-strike">
-            Over the free tier&apos;s 3 calls/sec. Rolls will be spaced out to stay inside it, so
-            auto will run slower than its two seconds.
-          </p>
-        )}
+        <p className="mt-2 max-w-[52ch] text-xs leading-5 text-dim">
+          Auto rolls continuously, so the limiter sets the pace and the allowance goes at one
+          speed whatever is selected here. What these switches change is what it buys — the last
+          row. A screened roll does not call the API at all, and none of this applies to it.
+        </p>
       </Group>
 
       {/* The finding that matters more than the feature. Stated here because

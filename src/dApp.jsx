@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import {
-  AUTO_ROLL_INTERVAL_MS,
-  AUTO_STOP_AFTER_ERRORS,
-  KEYS_PER_ROLL_OPTIONS,
-} from './config';
+import { AUTO_STOP_AFTER_ERRORS, KEYS_PER_ROLL_OPTIONS } from './config';
 import { fundedChains, isFunded, totalBalance } from './lib/accounts';
 import { chainById, DEFAULT_CHAIN_ID } from './lib/chains';
 import { downloadAccounts, parseAccounts } from './lib/download';
@@ -106,11 +102,20 @@ export default function DApp() {
     roll();
   }, [filterLoading, roll]);
 
+  // Auto rolls again the moment the last one is done, rather than on a timer.
+  // The two-second interval made sense when a roll cost two API calls and
+  // 300ms of key generation; screening removes the API from an ordinary roll
+  // entirely, and the pause became the slowest thing left in the loop. What
+  // paces it now is whatever is actually the bottleneck — the rate limiter
+  // when the chain is being read, key generation when it is not.
+  //
+  // The timeout is zero but not pointless: it breaks the synchronous chain so
+  // a roll that returns immediately cannot recurse into the next one.
   useEffect(() => {
-    if (!autoMode) return undefined;
-    const id = setInterval(roll, AUTO_ROLL_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [autoMode, roll]);
+    if (!autoMode || scanning || halted) return undefined;
+    const id = setTimeout(roll, 0);
+    return () => clearTimeout(id);
+  }, [autoMode, scanning, halted, roll]);
 
   // Auto mode already stops on a find; it should stop on a wall too. A wrong
   // key or a spent rate limit fails every roll, and the old loop kept firing
@@ -198,7 +203,7 @@ export default function DApp() {
   const toggleAutoMode = () => {
     const next = !autoMode;
     setAutoMode(next);
-    emit('auto', next ? `on · every ${AUTO_ROLL_INTERVAL_MS / 1000}s` : 'off');
+    emit('auto', next ? 'on · continuous' : 'off');
 
     if (!next && autosave && autosaveBuffer.length > 0) {
       downloadAccounts(autosaveBuffer, 'autosave-data');
@@ -357,7 +362,7 @@ export default function DApp() {
                 type="button"
                 onClick={toggleAutoMode}
                 disabled={halted}
-                title={`Press A, rolls every ${AUTO_ROLL_INTERVAL_MS / 1000}s`}
+                title="Press A, rolls continuously until stopped or something is found"
                 className={autoMode ? CONTROL_ON : CONTROL}
               >
                 [ auto ]
@@ -473,7 +478,10 @@ export default function DApp() {
 
             {view === 'sheet' ? (
               <div className="relative p-2">
-                <div key={visible[0]?.address ?? 'empty'} className="arrive">
+                {/* Not keyed on the batch any more: that remounted the whole
+                    sheet and replayed its fade-in every roll, which at this
+                    cadence is a strobe. The cells handle their own arrival. */}
+                <div className="arrive">
                   <BlockieSheet
                     accounts={visible}
                     resolved={resolved}
@@ -486,7 +494,7 @@ export default function DApp() {
                 <Ticks />
               </div>
             ) : (
-              <div key={visible[0]?.address ?? 'empty'} className="arrive">
+              <div className="arrive">
                 <AddressTable
                 accounts={visible}
                 resolved={resolved}

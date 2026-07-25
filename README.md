@@ -26,7 +26,7 @@ load; see below. Nothing else is configured, and there is no `.env` to fill in.
 | | |
 | --- | --- |
 | **Roll** | Keys are generated, screened, and looked up in batches of twenty. The sheet fills as it goes: an empty slot has no key yet, a latent cell has an address but no balance, a developed one has been read. `20 / 40 / 100 / 200` sets how many a roll makes; `stop` abandons one in flight |
-| **Auto** | Rolls every two seconds until stopped, or until something is found. `rec` alongside it buffers every batch and writes one file when you stop |
+| **Auto** | Rolls continuously until stopped, or until something is found. Each roll starts as the last one ends, so what sets the pace is whatever is actually slowest: the rate limiter when the chain is being read, key generation when the screen has spared it. `rec` alongside it buffers every batch and writes one file when you stop |
 | **Sheet** | The batch as a contact sheet of identicons. Right-click any cell for its actions; the colour is derived from the address, so it is the fastest way to tell forty of them apart |
 | **List** | The same batch as a log: channel number, address, private key, balance. The address links to Etherscan |
 | **Keep** | Kept keys go to `localStorage` and open from `kept` in the header. Export writes them as address/key pairs; import reads them back, or any text with private keys in it, since a key determines its own address |
@@ -66,7 +66,9 @@ Key generation does not depend on it. Without a key the sheet still rolls and
 every address and private key is shown; only the balances are unavailable,
 which the header reports and the error line reopens the panel to fix.
 `VITE_ETHERSCAN_API_KEY` remains as a build-time fallback for a self-hosted
-deployment that wants one; see `.env.example` for why you probably do not.
+deployment that wants one. You probably do not: this is a client-side app, so
+anything set there ships in the bundle, is readable by anyone who opens the
+page, and spends that one account's allowance on every visitor.
 
 ## The status line
 
@@ -174,19 +176,25 @@ the interesting part, and `chains` in the header puts it on screen next to the
 switches that set it.
 
 A free key allows **3 calls/second and 100,000 calls/day**, and twenty addresses
-fit in a call. At forty keys a roll, on the default two-second cadence:
+fit in a call. Auto does not pace itself any more, so the limiter does: calls
+leave at 2.7 a second, a tenth under the ceiling, and that is the rate under
+every setting on this panel. An unscreened run spends the day's hundred thousand
+in about ten hours no matter what is selected. What the switches change is what
+that allowance buys. At forty keys a roll:
 
-| chains | calls / roll | calls / sec | calls / day | keys / day at the cap |
-| --- | --- | --- | --- | --- |
-| 1 | 2 | 1.0 | 86,400 | 2,000,000 |
-| 2 | 4 | 2.0 | 172,800 | 1,000,000 |
-| 3 | 6 | 3.0 | 259,200 | 666,667 |
-| 5 | 10 | 5.0 | 432,000 | 400,000 |
+| chains | calls / roll | keys / day at the cap |
+| --- | --- | --- |
+| 1 | 2 | 2,000,000 |
+| 2 | 4 | 1,000,000 |
+| 3 | 6 | 666,667 |
+| 5 | 10 | 400,000 |
 
-One chain fits inside both limits with room to spare. Three sit exactly on the
-per-second ceiling and spend the day's allowance in nine hours. Every call is
-spaced by `src/lib/limiter.js` so nothing can actually breach the rate, but past
-three chains that means auto runs slower than the two seconds it advertises.
+The rate columns are gone because they had stopped saying anything. They were
+arithmetic on a two-second timer, where each chain added another call per roll
+and three chains sat exactly on the per-second ceiling. Rolls follow each other
+with no gap now, so `src/lib/limiter.js` is the only thing setting the pace, and
+it holds the same line however many chains are asked. None of this applies to a
+screened roll, which makes no call at all.
 
 The last column is the one worth reading. An allowance buys *lookups*, not keys,
 so every chain added spends the same budget re-asking about keys already

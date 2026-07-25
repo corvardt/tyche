@@ -6,33 +6,37 @@ import { describeCost, keyspaceFraction, yearsToExhaust } from './cost';
 const at = (chains, keysPerRoll = 40) => describeCost({ keysPerRoll, chains });
 
 describe('what a setting costs', () => {
-  it('matches the published table', () => {
-    // These numbers are in the README and in the chain panel, and they are the
-    // whole basis for the default being Ethereum alone.
+  it('counts the calls a roll makes', () => {
     expect(at([1]).callsPerRoll).toBe(2);
-    expect(at([1]).callsPerSecond).toBe(1);
-    expect(Math.round(at([1]).callsPerDay)).toBe(86_400);
-
     expect(at([1, 137]).callsPerRoll).toBe(4);
-    expect(Math.round(at([1, 137]).callsPerDay)).toBe(172_800);
-
     expect(at([1, 137, 42161]).callsPerRoll).toBe(6);
-    expect(at([1, 137, 42161]).callsPerSecond).toBe(3);
-    expect(Math.round(at([1, 137, 42161]).callsPerDay)).toBe(259_200);
+    expect(at([1], 200).callsPerRoll).toBe(10);
   });
 
-  it('puts one chain inside the daily allowance and three outside it', () => {
-    expect(at([1]).overDailyLimit).toBe(false);
-    expect(at([1]).hoursToDailyCap).toBeGreaterThan(24);
+  it('is paced by the limiter, not by the settings', () => {
+    // Auto rolls continuously, so the calls saturate the limiter whatever the
+    // batch size or chain count. Nothing here changes the rate.
+    const rate = at([1]).callsPerSecond;
+    expect(rate).toBeLessThan(ETHERSCAN_CALLS_PER_SECOND);
 
-    expect(at([1, 137, 42161]).overDailyLimit).toBe(true);
-    expect(at([1, 137, 42161]).hoursToDailyCap).toBeCloseTo(9.26, 1);
+    for (const chains of [[1], [1, 137], [1, 137, 42161, 59144, 100]]) {
+      expect(at(chains).callsPerSecond).toBe(rate);
+      expect(at(chains, 200).callsPerSecond).toBe(rate);
+    }
   });
 
-  it('flags the per-second ceiling only once it is passed', () => {
-    expect(at([1, 137, 42161]).callsPerSecond).toBe(ETHERSCAN_CALLS_PER_SECOND);
-    expect(at([1, 137, 42161]).overRateLimit).toBe(false);
-    expect(at([1, 137, 42161, 59144]).overRateLimit).toBe(true);
+  it('spends a free tier day in about ten hours, whatever is selected', () => {
+    for (const chains of [[1], [1, 137], [1, 137, 42161]]) {
+      expect(at(chains).hoursToDailyCap).toBeCloseTo(10.3, 1);
+      expect(at(chains, 200).hoursToDailyCap).toBeCloseTo(10.3, 1);
+    }
+  });
+
+  it('reports no exceedance flag, because every selection would raise it', () => {
+    // The panel used to colour the allowance row from this. Saturating the
+    // limiter passes the daily cap under every input, so the flag said nothing
+    // and the colour never came off.
+    expect(at([1])).not.toHaveProperty('overDailyLimit');
   });
 
   it('scales reachable keys as exactly 1/N in the chain count', () => {

@@ -1,38 +1,49 @@
 import {
-  AUTO_ROLL_INTERVAL_MS,
   ETHERSCAN_BATCH_SIZE,
   ETHERSCAN_CALLS_PER_DAY,
   ETHERSCAN_CALLS_PER_SECOND,
+  ETHERSCAN_RATE_SAFETY,
 } from '../config';
 
 /**
- * What a given setting costs to run.
+ * What a given setting costs to run, unscreened.
  *
- * Worth stating plainly, because the arithmetic is not obvious and the app used
- * to hide it entirely. One chain at forty keys is two calls a roll and one call
- * a second under auto — a quarter of the free tier's second-by-second budget,
- * and about 43% of its day. Three chains sits exactly on the per-second ceiling
- * and runs the daily allowance out in eighteen hours.
+ * This used to be arithmetic on the two-second auto interval. Auto is
+ * continuous now, so nothing paces the calls but the limiter — which means the
+ * rate is the plan's rate whatever the batch size or the chain count, and the
+ * allowance goes at one speed: about ten hours to spend a free tier's day.
  *
- * The deeper point is `keysPerDay`. A quota buys a fixed number of *lookups*,
- * and every extra chain spends the same allowance re-asking about keys already
- * generated instead of generating new ones. Reading N chains multiplies the
- * chance any one key is funded by roughly N, and divides the keys reachable in
- * a day by exactly N. Those cancel. Multichain is not a better search; it is
- * the same search, spread — and since mainnet holds far more funded addresses
- * than the quiet chains, spreading it slightly lowers the odds per call.
+ * What the settings still decide is what you get for it. `keysPerDay` is the
+ * figure worth reading: an allowance buys *lookups*, and each chain added
+ * spends the same budget re-asking about keys already generated rather than
+ * generating new ones. Reading N chains multiplies the chance any one key is
+ * funded by roughly N and divides the keys reachable in a day by exactly N.
+ * Those cancel. Multichain is not a better search; it is the same search,
+ * spread — and since mainnet holds far more funded addresses than the quiet
+ * chains, spreading it slightly lowers the odds per call.
  *
- * @param {{keysPerRoll: number, chains: number[], intervalMs?: number}} options
+ * None of this applies to a screened roll, which does not call the API at all.
+ * There the ceiling is how fast the browser can make keys.
+ *
+ * @param {{keysPerRoll: number, chains: number[]}} options
  */
-export function describeCost({ keysPerRoll, chains, intervalMs = AUTO_ROLL_INTERVAL_MS }) {
+export function describeCost({ keysPerRoll, chains }) {
   const chainCount = Math.max(chains.length, 1);
   const callsPerRoll = Math.ceil(keysPerRoll / ETHERSCAN_BATCH_SIZE) * chainCount;
-  const callsPerSecond = callsPerRoll / (intervalMs / 1000);
+
+  // Saturated by construction: rolls follow each other with no gap, so the
+  // limiter is the only thing setting the pace.
+  const callsPerSecond = ETHERSCAN_CALLS_PER_SECOND * ETHERSCAN_RATE_SAFETY;
   const callsPerDay = callsPerSecond * 86_400;
 
-  const hoursToDailyCap = callsPerSecond > 0 ? ETHERSCAN_CALLS_PER_DAY / callsPerSecond / 3600 : Infinity;
+  const hoursToDailyCap = ETHERSCAN_CALLS_PER_DAY / callsPerSecond / 3600;
   const keysPerDay = (ETHERSCAN_CALLS_PER_DAY * ETHERSCAN_BATCH_SIZE) / chainCount;
 
+  // There is no `overDailyLimit` any more. Saturating the limiter spends a free
+  // tier in about ten hours whatever is selected, so the flag was true for every
+  // input it could be given and the panel wore its warning colour permanently.
+  // A warning that never turns off is not one; `hoursToDailyCap` says the same
+  // thing with a number that means something.
   return {
     chainCount,
     callsPerRoll,
@@ -40,11 +51,6 @@ export function describeCost({ keysPerRoll, chains, intervalMs = AUTO_ROLL_INTER
     callsPerDay,
     hoursToDailyCap,
     keysPerDay,
-    // Auto mode would outrun the plan's per-second limit at this setting. The
-    // limiter will hold the line by slowing rolls down, so this is a warning
-    // that the cadence will slip, not that anything will break.
-    overRateLimit: callsPerSecond > ETHERSCAN_CALLS_PER_SECOND,
-    overDailyLimit: callsPerDay > ETHERSCAN_CALLS_PER_DAY,
   };
 }
 

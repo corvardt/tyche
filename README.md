@@ -31,7 +31,7 @@ load; see below. Nothing else is configured, and there is no `.env` to fill in.
 | **Keep** | Kept keys go to `localStorage` and open from `kept` in the header. Export writes them as address/key pairs; import reads them back, or any text with private keys in it, since a key determines its own address |
 | **Chains** | Which chains a roll is read against, and what that costs. Ethereum only unless you say otherwise. Read the cost panel before adding any |
 | **Stats** | Rate, session, the fraction of the keyspace covered, and what the day's API allowance has left. Also where the status line is switched on |
-| **Status** | Off by default. A line along the bottom edge naming everything as it happens, one entry at a time |
+| **Status** | A line along the bottom edge naming everything as it happens, one entry at a time. On unless you turn it off under `stats` |
 | **Test** | Plants a known funded address (a Binance hot wallet) in the batch, so the found-one path can be exercised without waiting for a 1-in-2^160 event |
 | **Keys** | `x` roll · `a` auto · `v` sheet/list · `k` api key · `f` kept keys · `c` chains · `s` stats · `t` tube/paper |
 
@@ -68,10 +68,11 @@ deployment that wants one; see `.env.example` for why you probably do not.
 
 ## The status line
 
-`verbose status line` under `stats` puts a line along the bottom edge naming
-everything the instrument does as it does it: each roll, the keys as they are
-generated, every call and the chain it went to, every wait the rate limiter
-imposed, every find. One roll of forty against two chains reads:
+A line along the bottom edge names everything the instrument does as it does it:
+each roll, the keys as they are generated, every call and the chain it went to,
+every wait the rate limiter imposed, every find. Watching the machine work is
+most of what there is to do here, so it is on unless you turn it off, from
+`verbose status line` under `stats`. One roll of forty against two chains reads:
 
 ```
 20:14:03.118 00012 ROLL     #2 · 40 keys · 2 chain(s)

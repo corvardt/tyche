@@ -29,10 +29,11 @@ function loadKeysPerRoll() {
 export function useSettings() {
   const [chains, setChainsState] = useState(loadChains);
   const [keysPerRoll, setKeysPerRollState] = useState(loadKeysPerRoll);
-  // Off by default: the status line is for when you want to watch the machine
-  // work, not something to explain to someone who just opened the page.
+  // On unless switched off. Watching the machine work is most of what there is
+  // to do here, so the commentary is the default state and quiet is the choice.
+  // Tested against 'off' rather than for 'on' so an unset key reads as on.
   const [verbose, setVerboseState] = useState(
-    () => readString(STORAGE_KEYS.verbose, '') === 'on',
+    () => readString(STORAGE_KEYS.verbose, '') !== 'off',
   );
 
   const setChains = useCallback((next) => {

@@ -3,8 +3,40 @@ import { computeAddress } from 'ethers';
 
 import { KEYS_PER_ROLL, TEST_MODE_ADDRESS } from '../config';
 import {
-  balanceOn, fundedChains, generateAccounts, isFunded, normaliseAccount, totalBalance,
+  balanceOn, fundedChains, generateAccounts, generateAccountsProgressively, isFunded,
+  normaliseAccount, totalBalance,
 } from './accounts';
+
+/** True if the queued macrotask got to run before `work` settled. */
+async function yieldedDuring(work) {
+  let ran = false;
+  setTimeout(() => {
+    ran = true;
+  }, 0);
+  await work();
+  return ran;
+}
+
+/**
+ * Whether generation yields is not a detail of generation. Auto rolls again
+ * when the last roll ends, and it can only see a roll end if the roll rendered
+ * something; a batch that fits one chunk and raises no candidate does neither,
+ * which once stopped auto dead whenever the screen was on. The loop no longer
+ * depends on this, and these pin down the behaviour it stopped depending on.
+ */
+describe('yielding', () => {
+  it('does not yield when the batch fits a single chunk', async () => {
+    expect(await yieldedDuring(() => generateAccountsProgressively({ count: 40, chunk: 100 }))).toBe(
+      false,
+    );
+  });
+
+  it('yields between chunks when the batch needs more than one', async () => {
+    expect(await yieldedDuring(() => generateAccountsProgressively({ count: 40, chunk: 20 }))).toBe(
+      true,
+    );
+  });
+});
 
 describe('generation', () => {
   it('makes a full batch of distinct, self-consistent keypairs', () => {

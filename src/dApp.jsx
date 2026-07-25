@@ -85,6 +85,7 @@ export default function DApp() {
     session,
     halted,
     consecutiveErrors,
+    completedRolls,
     cancel,
     resumeAfterHit,
     roll,
@@ -111,11 +112,19 @@ export default function DApp() {
   //
   // The timeout is zero but not pointless: it breaks the synchronous chain so
   // a roll that returns immediately cannot recurse into the next one.
+  //
+  // What restarts it is `completedRolls`, not `scanning`. Watching `scanning`
+  // is the obvious thing and it stops auto dead the moment the screen starts
+  // working: a screened roll that raises no candidate makes no call and, at
+  // forty keys, does not even yield between generation chunks, so it begins and
+  // ends inside one React batch and never renders the change the loop was
+  // waiting on. `scanning` and `halted` stay in the guard, where they are read
+  // rather than awaited.
   useEffect(() => {
     if (!autoMode || scanning || halted) return undefined;
     const id = setTimeout(roll, 0);
     return () => clearTimeout(id);
-  }, [autoMode, scanning, halted, roll]);
+  }, [autoMode, scanning, halted, completedRolls, roll]);
 
   // Auto mode already stops on a find; it should stop on a wall too. A wrong
   // key or a spent rate limit fails every roll, and the old loop kept firing

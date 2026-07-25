@@ -43,6 +43,21 @@ export function useScanner({
   // a rate limit cannot be answered by asking again every two seconds forever.
   const [consecutiveErrors, setConsecutiveErrors] = useState(0);
 
+  /**
+   * Counts rolls that have finished, by any route.
+   *
+   * Auto waits for a roll to end and then starts another, and it needs a signal
+   * that a roll ended. `scanning` looks like that signal and is not one: a roll
+   * only renders it if something inside yields long enough for React to commit,
+   * and a screened roll need not yield at all. Forty keys fit in one generation
+   * chunk, and a batch that raises no candidate never touches the network, so
+   * `setScanning(true)` and `setScanning(false)` land in the same batch, the
+   * value ends where it started, React drops the render, and the loop waits
+   * forever for a change that already happened. This is the honest signal: it
+   * moves once per roll whatever the roll did.
+   */
+  const [completedRolls, setCompletedRolls] = useState(0);
+
   // What this sitting has done, as opposed to `keysChecked`, which is every
   // key this browser has ever generated. The statistics panel needs both: one
   // gives a rate, the other a total.
@@ -299,6 +314,10 @@ export function useScanner({
       if (abortRef.current === controller) abortRef.current = null;
       if (mounted.current) {
         setScanning(false);
+        // In the `finally`, so a roll that threw or was cancelled still counts
+        // as one that ended. Auto stopping dead on the first failed roll would
+        // be the same bug wearing a different hat.
+        setCompletedRolls((n) => n + 1);
         setTimeout(() => mounted.current && setProgress(0), 150);
       }
     }
@@ -344,6 +363,7 @@ export function useScanner({
     session,
     halted,
     consecutiveErrors,
+    completedRolls,
     cancel,
     resumeAfterHit,
     roll: rollNow,

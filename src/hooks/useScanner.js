@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { KEYS_PER_ROLL, STORAGE_KEYS } from '../config';
-import { fundedChains, generateAccounts, isFunded } from '../lib/accounts';
+import { fundedChains, generateAccountsProgressively, isFunded } from '../lib/accounts';
 import { mightContain } from '../lib/bloom';
 import { chainName } from '../lib/chains';
 import { callsPerRoll, fetchBalances } from '../lib/etherscan';
@@ -34,6 +34,10 @@ export function useScanner({
   const [keysChecked, setKeysChecked] = useState(() =>
     readNumber(STORAGE_KEYS.keysChecked, 0),
   );
+  // How many of the batch on screen have actually been read. Everything past
+  // it is latent: the address is known the moment it is generated, so the
+  // identicon is there from the start — it is the balance that has not arrived.
+  const [resolved, setResolved] = useState(0);
   const [halted, setHalted] = useState(false);
   // Rolls that have failed back to back. Auto mode watches this so a bad key or
   // a rate limit cannot be answered by asking again every two seconds forever.
@@ -138,16 +142,33 @@ export function useScanner({
       `#${rollNumber.current} · ${keysPerRoll} keys · ${(chains ?? []).length || 1} chain(s)${testMode ? ' · test' : ''}`,
     );
 
-    const generatedAt = Date.now();
-    const batch = generateAccounts({ testMode, count: keysPerRoll });
-    emit('gen', `${batch.length} keypairs · ${Date.now() - generatedAt}ms`);
+    setResolved(0);
 
-    // Keep the last completed set on screen while the new one resolves, rather
-    // than flashing an empty grid.
+    // The sheet empties to the size of the coming batch and fills as the keys
+    // are made. It used to hold the previous batch in place until the new one
+    // had fully resolved, on the reasoning that an unread batch had nothing to
+    // show; it has an identicon from the moment each key exists.
     setPreviousAccounts((previous) => (accounts.length > 0 ? accounts : previous));
-    setAccounts(batch);
+    setAccounts([]);
+
+    // Generation is inside the try: it yields to the browser now, so it is a
+    // place a roll can fail, and a throw out here would leave `inFlight` set
+    // and the instrument unable to roll again.
+    let batch = [];
 
     try {
+      const generatedAt = Date.now();
+      batch = await generateAccountsProgressively({
+        testMode,
+        count: keysPerRoll,
+        onChunk: (made) => {
+          if (mounted.current) setAccounts(made);
+        },
+      });
+
+      if (!mounted.current) return;
+      emit('gen', `${batch.length} keypairs · ${Date.now() - generatedAt}ms`);
+
       fetchEthPrice({ signal: controller.signal }).then((price) => {
         if (mounted.current && price !== null) setEthPrice(price);
       });
@@ -181,8 +202,12 @@ export function useScanner({
                 // stopped being the number of calls a roll makes the moment
                 // either the batch size or the chain count could vary. The
                 // lookup reports its own.
-                onBatch: ({ completed, total }) => {
-                  if (mounted.current) setProgress(Math.min(90, (completed / total) * 90));
+                onBatch: ({ completed, total, resolved: read }) => {
+                  if (!mounted.current) return;
+                  setProgress(Math.min(90, (completed / total) * 90));
+                  // Screened rolls read only the candidates, so the count that
+                  // comes back is of those, not of the sheet.
+                  if (!filter) setResolved(read);
                 },
               },
             );
@@ -196,6 +221,7 @@ export function useScanner({
 
       setAccounts(scanned);
       setPreviousAccounts(scanned);
+      setResolved(batch.length);
       setHasScanned(true);
       setProgress(100);
       setElapsedMs(Date.now() - started);
@@ -290,6 +316,7 @@ export function useScanner({
     elapsedMs,
     ethPrice,
     keysChecked,
+    resolved,
     session,
     halted,
     consecutiveErrors,

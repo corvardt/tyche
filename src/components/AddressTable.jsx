@@ -13,7 +13,11 @@ import { formatEth } from '../lib/format';
  * is named with its own symbol, and anything further is counted rather than
  * crammed in.
  */
-function Holding({ account }) {
+function Holding({ account, latent }) {
+  // `0.0...` means read and empty. Something not yet read is a different fact,
+  // and the table could not previously tell the two apart.
+  if (latent) return <span className="text-land">— — —</span>;
+
   const held = fundedChains(account);
   if (held.length === 0) return <>{formatEth(0)}</>;
 
@@ -41,7 +45,12 @@ function Holding({ account }) {
  * previous table hung its columns off `pr-[20rem]` padding inside flex rows,
  * which is why nothing lined up below 1400px.
  */
-function AddressTable({ accounts, onSelect, hitClass = '' }) {
+function AddressTable({
+  accounts,
+  resolved = Number.POSITIVE_INFINITY,
+  onSelect,
+  hitClass = '',
+}) {
   return (
     <div className="w-full overflow-x-auto border border-line">
       <table className="w-full min-w-[52rem] border-collapse text-left">
@@ -63,13 +72,15 @@ function AddressTable({ accounts, onSelect, hitClass = '' }) {
         <tbody>
           {accounts.map((account, index) => {
             const funded = isFunded(account);
+            const latent = index >= resolved;
 
             return (
               <tr
                 key={account.address}
+                style={{ '--i': index % 20 }}
                 className={`group border-t border-line first:border-t-0 ${
-                  funded ? 'bg-panel' : ''
-                }`}
+                  latent ? 'row-latent' : 'row-read'
+                } ${funded ? 'bg-panel' : ''}`}
               >
                 <td className="w-8 px-3 py-1.5">
                   <span className={`block h-4 w-4 ${funded ? '' : 'opacity-70'}`}>
@@ -120,7 +131,7 @@ function AddressTable({ accounts, onSelect, hitClass = '' }) {
                     funded ? 'glow-hot text-strike' : 'text-dim'
                   }`}
                 >
-                  <Holding account={account} />
+                  <Holding account={account} latent={latent} />
                 </td>
               </tr>
             );

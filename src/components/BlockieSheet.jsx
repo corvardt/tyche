@@ -14,12 +14,16 @@ import { blockie } from '../lib/blockie';
  * @param {object} props
  * @param {import('../lib/accounts').Account[]} props.accounts
  * @param {boolean} [props.fill]      size cells to the container instead of 5/8 columns
+ * @param {number} [props.resolved]  how many cells have actually been read
+ * @param {number} [props.slots]     grid size to hold while a batch is generated
  * @param {boolean} [props.dimMissed] step back everything that isn't the hit
  * @param {string} [props.hitClass]   marker class the click-outside test looks for
  * @param {(event: MouseEvent, account: object) => void} [props.onSelect]
  */
 function BlockieSheet({
   accounts,
+  resolved = Number.POSITIVE_INFINITY,
+  slots = 0,
   fill = false,
   dimMissed = false,
   hitClass = '',
@@ -27,9 +31,12 @@ function BlockieSheet({
 }) {
   return (
     <div className={`sheet ${fill ? 'sheet-fill' : ''}`}>
-      {accounts.map((account) => {
+      {accounts.map((account, index) => {
         if (!account?.address) return null;
         const funded = isFunded(account);
+        // The exposure is there from the moment the key exists; what has not
+        // arrived is the balance. Latent cells hold back until theirs does.
+        const latent = index >= resolved;
 
         const image = (
           <img
@@ -43,7 +50,12 @@ function BlockieSheet({
         return (
           <div
             key={account.address}
-            className={`cell ${funded ? 'cell-hit breathe' : dimMissed ? 'cell-missed' : ''}`}
+            // Twenty land at a time, so they are staggered inside their own
+            // group: the batch develops as a quick wave rather than a switch.
+            style={{ '--i': index % 20 }}
+            className={`cell ${latent ? 'cell-latent' : 'cell-read'} ${
+              funded ? 'cell-hit breathe' : dimMissed ? 'cell-missed' : ''
+            }`}
           >
             {onSelect ? (
               <button
@@ -64,6 +76,13 @@ function BlockieSheet({
           </div>
         );
       })}
+
+      {/* Slots for keys not yet made, held after what exists so the sheet
+          fills from the start rather than growing — a growing grid would
+          reflow the page under the reader on every roll. */}
+      {Array.from({ length: Math.max(0, slots - accounts.length) }, (_, index) => (
+        <div key={`slot-${index}`} className="cell cell-empty" aria-hidden="true" />
+      ))}
     </div>
   );
 }

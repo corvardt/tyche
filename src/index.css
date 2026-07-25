@@ -200,6 +200,57 @@
   animation: seek 1.6s ease-in-out infinite;
 }
 
+/* ── Developing ─────────────────────────────────────────────────────────────
+   A key's address, and so its identicon, exists the moment it is generated;
+   what has not arrived is the balance. So a cell is not empty while it waits,
+   it is latent — the exposure is made and not yet fixed. It comes up as its
+   twenty are answered, which means the sheet fills in the order the chain
+   actually replies, and visibly stops filling while the rate limiter holds.
+   That pause is the truth of what the instrument is doing. */
+@keyframes latent {
+  0%,
+  100% {
+    opacity: 0.22;
+  }
+  50% {
+    opacity: 0.34;
+  }
+}
+
+/* A slot with no key in it yet. Faint, so the grid reads as reserved rather
+   than as forty missing exposures. */
+.cell-empty {
+  background-color: var(--c-panel);
+  opacity: 0.5;
+}
+
+.cell-latent .blockie {
+  filter: contrast(0.4) saturate(0.5);
+  animation: latent 2.4s ease-in-out infinite;
+}
+
+/* The delay staggers the twenty of a batch so they come up as a wave rather
+   than a switch. It applies only on the way in: `--i` is the index inside the
+   group, so cell 19 lands ~110ms after cell 0. */
+.cell-read .blockie {
+  filter: none;
+  opacity: 1;
+  transition:
+    filter 420ms ease-out,
+    opacity 420ms ease-out;
+  transition-delay: calc(var(--i, 0) * 6ms);
+}
+
+.row-latent {
+  opacity: 0.45;
+}
+
+.row-read {
+  opacity: 1;
+  transition: opacity 420ms ease-out;
+  transition-delay: calc(var(--i, 0) * 6ms);
+}
+
 /* ── The glass ──────────────────────────────────────────────────────────────
    Sits above everything, catches no pointer events, and is the only place the
    retro treatment lives; the components underneath stay clean. */
@@ -346,7 +397,33 @@
   .arrive,
   .breathe,
   .seek,
-  .crt-sweep {
+  .crt-sweep,
+  /* A slot with no key in it yet. Faint, so the grid reads as reserved rather
+   than as forty missing exposures. */
+.cell-empty {
+  background-color: var(--c-panel);
+  opacity: 0.5;
+}
+
+.cell-latent .blockie {
     animation: none;
+  }
+
+  /* The latent state stays: it is information, not decoration — it says the
+     balance has not arrived. Only the movement between the two states goes. */
+  .cell-read .blockie,
+  .row-read {
+    transition: none;
+  }
+
+  /* A slot with no key in it yet. Faint, so the grid reads as reserved rather
+   than as forty missing exposures. */
+.cell-empty {
+  background-color: var(--c-panel);
+  opacity: 0.5;
+}
+
+.cell-latent .blockie {
+    opacity: 0.28;
   }
 }

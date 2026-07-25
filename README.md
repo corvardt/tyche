@@ -25,7 +25,7 @@ load; see below. Nothing else is configured, and there is no `.env` to fill in.
 
 | | |
 | --- | --- |
-| **Roll** | Keys are generated, priced, and looked up in batches of twenty. The previous sheet stays on screen while the new one resolves. `20 / 40 / 100 / 200` sets how many a roll makes; `stop` abandons one in flight |
+| **Roll** | Keys are generated, screened, and looked up in batches of twenty. The sheet fills as it goes: an empty slot has no key yet, a latent cell has an address but no balance, a developed one has been read. `20 / 40 / 100 / 200` sets how many a roll makes; `stop` abandons one in flight |
 | **Auto** | Rolls every two seconds until stopped, or until something is found. `rec` alongside it buffers every batch and writes one file when you stop |
 | **Sheet** | The batch as a contact sheet of identicons. Right-click any cell for its actions; the colour is derived from the address, so it is the fastest way to tell forty of them apart |
 | **List** | The same batch as a log: channel number, address, private key, balance. The address links to Etherscan |
@@ -95,6 +95,32 @@ gets coalesced into a single paint, so the entries in between are shown to
 nobody. If the machine ever outruns the line the backlog is dropped from the
 front rather than allowed to lag; in practice the rate limiter holds calls below
 the speed the line can display, so it keeps up.
+
+## Developing
+
+A roll has three phases and the sheet shows all three, because which one is
+slow depends entirely on how the instrument is set up.
+
+Keys are generated in twenties, yielding to the browser between them, so the
+grid fills rather than appearing at once — two hundred keys is about 75ms of
+secp256k1 and used to be a dropped frame. Each cell then sits *latent*: its
+address exists, and so does its identicon, but its balance does not. It develops
+when its twenty are answered.
+
+That means the sheet fills in the order the chain actually replies, and stops
+filling while the rate limiter holds. The pause is not an animation waiting; it
+is the instrument telling you what it is doing.
+
+With a filter loaded the balance of the two inverts. Generation becomes the only
+slow part — the screen is sub-millisecond and the chain is usually not asked at
+all — so the roll reads as a sheet being made rather than a sheet being
+confirmed. Without one, generation is a blink and the developing is the whole
+show. Neither is decoration: each phase animates only while it is the one taking
+the time.
+
+The list says the same thing in its own terms. A row with no balance yet reads
+`— — —`, which is a different fact from `0.0...` — the app could not previously
+tell "not yet read" from "read, and empty".
 
 ## The screen
 

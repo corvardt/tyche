@@ -143,9 +143,15 @@ export async function fetchBalances(addresses, { chains, signal, onBatch } = {})
   for (const address of addresses) balances.set(address.toLowerCase(), {});
 
   let completed = 0;
+  let resolved = 0;
 
-  for (const chainId of chainIds) {
-    for (const [index, batch] of batches.entries()) {
+  // Batch-major rather than chain-major: finish every chain for one group of
+  // twenty before starting the next. The same calls in a different order, but
+  // it means addresses are *finished* progressively instead of all at the end,
+  // which is what lets the sheet fill as the answers land rather than sitting
+  // blank until the last chain is done.
+  for (const [index, batch] of batches.entries()) {
+    for (const [chainIndex, chainId] of chainIds.entries()) {
       emit(
         'lookup',
         `${chainName(chainId)} · batch ${index + 1}/${batches.length} · ${batch.length} addrs`,
@@ -167,7 +173,12 @@ export async function fetchBalances(addresses, { chains, signal, onBatch } = {})
       }
 
       completed += 1;
-      onBatch?.({ completed, total });
+      // An address counts as read only once every selected chain has answered
+      // for it, which is the last chain of its group.
+      if (chainIndex === chainIds.length - 1) {
+        resolved = Math.min((index + 1) * ETHERSCAN_BATCH_SIZE, addresses.length);
+      }
+      onBatch?.({ completed, total, resolved });
     }
   }
 

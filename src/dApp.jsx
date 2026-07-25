@@ -85,6 +85,7 @@ export default function DApp() {
     elapsedMs,
     ethPrice,
     keysChecked,
+    resolved,
     session,
     halted,
     consecutiveErrors,
@@ -152,16 +153,15 @@ export default function DApp() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [anyPanelOpen, roll, setTheme, theme]);
 
-  // While a roll is in flight the previous batch stays on screen, but only if
-  // there is one. Keying this on `hasScanned` meant the very first roll (and
-  // every roll after a failed balance lookup) rendered an empty sheet, since
-  // `previousAccounts` is still `[]` at that point.
-  const visible =
-    scanning && previousAccounts.length > 0
-      ? previousAccounts
-      : accounts.length > 0
-        ? accounts
-        : previousAccounts;
+  // The batch being rolled is what is on screen, developing as it is read. It
+  // used to be the *previous* batch until the new one had fully resolved, on
+  // the reasoning that an unread batch had nothing to show; it has its
+  // identicons from the moment it is generated, so it does.
+  // While a roll is running the sheet is the batch being made, however little
+  // of it exists yet; the empty remainder is drawn as slots. Only at rest does
+  // the previous batch stand in, for the moment before the first roll lands.
+  const visible = scanning || accounts.length > 0 ? accounts : previousAccounts;
+  const slots = scanning ? keysPerRoll : 0;
 
   // Sums are per-chain by necessity, so the readout names one: mainnet when it
   // is being read, otherwise whichever chain is. Adding a Polygon balance to an
@@ -476,6 +476,8 @@ export default function DApp() {
                 <div key={visible[0]?.address ?? 'empty'} className="arrive">
                   <BlockieSheet
                     accounts={visible}
+                    resolved={resolved}
+                    slots={slots}
                     dimMissed={halted}
                     hitClass="img3"
                     onSelect={listMenu.open}
@@ -485,7 +487,12 @@ export default function DApp() {
               </div>
             ) : (
               <div key={visible[0]?.address ?? 'empty'} className="arrive">
-                <AddressTable accounts={visible} onSelect={listMenu.open} hitClass="img3" />
+                <AddressTable
+                accounts={visible}
+                resolved={resolved}
+                onSelect={listMenu.open}
+                hitClass="img3"
+              />
               </div>
             )}
           </div>

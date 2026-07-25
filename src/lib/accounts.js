@@ -58,6 +58,54 @@ export function generateAccounts({ testMode = false, count = KEYS_PER_ROLL } = {
   return accounts;
 }
 
+/**
+ * Yields to the browser between chunks so a large roll paints as it is made.
+ *
+ * Two hundred keys is about 75ms of secp256k1 on the main thread, which is a
+ * dropped frame and a sheet that appears all at once with nothing to watch.
+ * Generating in twenties — the same grouping the lookup uses — hands control
+ * back between them, so the batch fills in as it is generated and the page
+ * stays responsive while it does.
+ *
+ * @param {{testMode?: boolean, count?: number, chunk?: number, onChunk?: (accounts: Account[]) => void}} options
+ * @returns {Promise<Account[]>}
+ */
+export async function generateAccountsProgressively({
+  testMode = false,
+  count = KEYS_PER_ROLL,
+  chunk = 20,
+  onChunk,
+} = {}) {
+  const total = Math.max(1, count);
+  const accounts = [];
+
+  while (accounts.length < total) {
+    const remaining = total - accounts.length;
+    const size = Math.min(chunk, remaining);
+
+    for (let i = 0; i < size; i += 1) {
+      const last = accounts.length + 1 === total;
+      accounts.push(
+        testMode && last
+          ? { address: TEST_MODE_ADDRESS, privateKey: 'ThisWouldBeThePrivateKey', balances: null }
+          : randomAccount(),
+      );
+    }
+
+    onChunk?.(accounts.slice());
+    if (accounts.length < total) await yieldToPaint();
+  }
+
+  return accounts;
+}
+
+/** A frame if there is one to wait for, otherwise the back of the task queue. */
+const yieldToPaint = () =>
+  new Promise((resolve) => {
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => resolve());
+    else setTimeout(resolve, 0);
+  });
+
 /** Anything, anywhere. @param {Account} account */
 export const isFunded = (account) =>
   Object.values(account?.balances ?? {}).some((amount) => Number(amount) > 0);

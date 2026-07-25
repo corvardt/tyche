@@ -13,10 +13,25 @@ import { useEffect, useRef, useState } from 'react';
  * So `shown` lags `target`: it changes at the bottom of the collapse and the
  * bloom carries it back up.
  *
+ * Both halves, in milliseconds. A channel change is not a page transition and
+ * is not there to be admired: it wants to be over about as fast as the eye can
+ * follow the line close and open again.
+ *
+ * The stylesheet carries the same pair as its own defaults so the keyframes
+ * read sensibly alone, but the wrapper is handed an explicit
+ * `animation-duration` from here, so these are the numbers that count and the
+ * two cannot drift apart.
+ *
  * @param {*} target the view that should be on screen
- * @returns {{shown: *, phase: 'collapse'|'bloom'|null}}
+ * @returns {{shown: *, phase: 'collapse'|'bloom'|null, durationMs: number}}
  */
-export function useTubeSwitch(target, { collapseMs = 130, bloomMs = 240 } = {}) {
+export const TUBE_COLLAPSE_MS = 80;
+export const TUBE_BLOOM_MS = 150;
+
+export function useTubeSwitch(
+  target,
+  { collapseMs = TUBE_COLLAPSE_MS, bloomMs = TUBE_BLOOM_MS } = {},
+) {
   const [shown, setShown] = useState(target);
   const [phase, setPhase] = useState(null);
   const timers = useRef([]);
@@ -51,5 +66,5 @@ export function useTubeSwitch(target, { collapseMs = 130, bloomMs = 240 } = {}) 
     };
   }, [target, shown, collapseMs, bloomMs]);
 
-  return { shown, phase };
+  return { shown, phase, durationMs: phase === 'collapse' ? collapseMs : bloomMs };
 }

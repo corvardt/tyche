@@ -106,11 +106,21 @@ function PhosphorField({ screened, candidates, batchSize = 40, theme = 'dark' })
       context.globalAlpha = 1;
     };
 
+    // `clientWidth`/`clientHeight`, never `getBoundingClientRect`. The field
+    // sits inside the wrapper that the channel change scales, and a bounding
+    // rect carries ancestor transforms with it: measured mid-bloom it reports a
+    // box a few pixels tall, the backing store is built at that size, and CSS
+    // then stretches those few rows over the full height. Every grain comes out
+    // as a vertical streak and stays that way until the next resize. The layout
+    // box does not move when something is transformed, so it is the honest one.
     const resize = () => {
       const ratio = window.devicePixelRatio || 1;
-      const box = canvas.getBoundingClientRect();
-      width = Math.max(1, Math.round(box.width * ratio));
-      height = Math.max(1, Math.round(box.height * ratio));
+      const cssWidth = canvas.clientWidth;
+      const cssHeight = canvas.clientHeight;
+      if (cssWidth === 0 || cssHeight === 0) return;
+
+      width = Math.max(1, Math.round(cssWidth * ratio));
+      height = Math.max(1, Math.round(cssHeight * ratio));
       canvas.width = width;
       canvas.height = height;
       context.clearRect(0, 0, width, height);

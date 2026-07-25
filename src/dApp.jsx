@@ -514,25 +514,36 @@ export default function DApp() {
                 {/* Not keyed on the batch any more: that remounted the whole
                     sheet and replayed its fade-in every roll, which at this
                     cadence is a strobe. The cells handle their own arrival. */}
-                <div className={`arrive ${tube.phase ? `tube-${tube.phase}` : ''}`}>
-                  {tube.shown ? (
-                    <PhosphorField
-                      screened={session.screened}
-                      candidates={session.candidates}
-                      batchSize={keysPerRoll}
-                      theme={theme}
-                    />
-                  ) : (
-                    <BlockieSheet
-                      accounts={visible}
-                      resolved={resolved}
-                      slots={slots}
-                      dimMissed={halted}
-                      hitClass="img3"
-                      onSelect={listMenu.open}
-                    />
-                  )}
+                {/* Two elements, not one. Sharing a node with `arrive` meant
+                    that dropping the tube class handed `animation-name` back to
+                    `arrive`, which re-ran its 320ms fade after every bloom and
+                    made the change feel far longer than it was. */}
+                <div
+                  className={tube.phase ? `tube-${tube.phase}` : undefined}
+                  style={tube.phase ? { animationDuration: `${tube.durationMs}ms` } : undefined}
+                >
+                  <div className="arrive">
+                    {tube.shown ? (
+                      <PhosphorField
+                        screened={session.screened}
+                        candidates={session.candidates}
+                        batchSize={keysPerRoll}
+                        theme={theme}
+                      />
+                    ) : (
+                      <BlockieSheet
+                        accounts={visible}
+                        resolved={resolved}
+                        slots={slots}
+                        dimMissed={halted}
+                        hitClass="img3"
+                        onSelect={listMenu.open}
+                      />
+                    )}
+                  </div>
                 </div>
+                {/* Outside the collapse: the bezel is the instrument, not the
+                    picture, and it does not pull into the line with it. */}
                 <Ticks />
               </div>
             ) : (

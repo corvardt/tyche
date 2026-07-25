@@ -21,7 +21,19 @@ const Glyph = () => (
  * animated icon and a fixed 250px drawer on a page that has room to just show
  * them.
  */
-function Header({ scanning, halted, error, theme, onTheme, onKeys, onFavorites, favoriteCount }) {
+function Header({
+  scanning,
+  halted,
+  error,
+  theme,
+  onTheme,
+  onKeys,
+  onFavorites,
+  onChains,
+  onStats,
+  favoriteCount,
+  chainCount,
+}) {
   // When it is simply rolling, the sweeping dot already says so. Speak up only
   // for the two states that stop the machine.
   const state = error ? 'no signal' : halted ? 'holding' : null;
@@ -64,6 +76,12 @@ function Header({ scanning, halted, error, theme, onTheme, onKeys, onFavorites, 
           <Rule />
           <button type="button" onClick={onKeys} className={CONTROL}>
             api
+          </button>
+          <button type="button" onClick={onChains} className={`${CONTROL} hidden sm:inline`}>
+            chains{chainCount > 1 ? ` ${chainCount}` : ''}
+          </button>
+          <button type="button" onClick={onStats} className={CONTROL}>
+            stats
           </button>
           <button type="button" onClick={onFavorites} className={CONTROL}>
             kept{favoriteCount > 0 ? ` ${favoriteCount}` : ''}

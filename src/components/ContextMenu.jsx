@@ -1,5 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 
+import { fundedChains } from '../lib/accounts';
+import { explorerAddress } from '../lib/chains';
+
 const MENU_WIDTH = 190;
 
 function MenuItem({ label, onClick }) {
@@ -77,7 +80,7 @@ export default function ContextMenu({ menu, onClose, favoriteAction, onFavorite,
         label="[ etherscan ]"
         onClick={act(() =>
           window.open(
-            `https://etherscan.io/address/${account.address}`,
+            explorerAddress(account.address, fundedChains(account)[0]?.chainId),
             '_blank',
             'noopener,noreferrer',
           ),

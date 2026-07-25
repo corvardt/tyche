@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { AUTO_ROLL_INTERVAL_MS, AUTO_STOP_AFTER_ERRORS, KEYS_PER_ROLL } from './config';
-import { isFunded, totalBalance } from './lib/accounts';
-import { downloadAccounts } from './lib/download';
+import {
+  AUTO_ROLL_INTERVAL_MS,
+  AUTO_STOP_AFTER_ERRORS,
+  KEYS_PER_ROLL_OPTIONS,
+} from './config';
+import { fundedChains, isFunded, totalBalance } from './lib/accounts';
+import { chainById, DEFAULT_CHAIN_ID } from './lib/chains';
+import { downloadAccounts, parseAccounts } from './lib/download';
 import { hasApiKey } from './lib/etherscan';
 import { formatCount, formatEth, formatUsd } from './lib/format';
 import { useTheme } from './lib/theme';
@@ -10,17 +15,20 @@ import { useTheme } from './lib/theme';
 import { useContextMenu } from './hooks/useContextMenu';
 import { useFavorites } from './hooks/useFavorites';
 import { useScanner } from './hooks/useScanner';
+import { useSettings } from './hooks/useSettings';
 import { useSnackbar } from './hooks/useSnackbar';
 
 import AddressTable from './components/AddressTable';
 import ApiKeyDialog from './components/ApiKeyDialog';
 import BlockieSheet from './components/BlockieSheet';
+import ChainPanel from './components/ChainPanel';
 import ContextMenu from './components/ContextMenu';
 import Crt, { Ticks } from './components/Crt';
 import FavoritesPanel from './components/FavoritesPanel';
 import Header from './components/Header';
 import LoadingBar from './components/LoadingBar';
 import Snackbar from './components/Snackbar';
+import StatsPanel from './components/StatsPanel';
 import { CONTROL, CONTROL_ON, Readout, Rule } from './components/controls';
 
 export default function DApp() {
@@ -32,6 +40,8 @@ export default function DApp() {
   const [autosave, setAutosave] = useState(false);
   const [autosaveBuffer, setAutosaveBuffer] = useState([]);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [chainsOpen, setChainsOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
 
   // Users bring their own Etherscan key. Prompt for it on the first visit, then
   // stay out of the way; key generation itself works without one.
@@ -39,7 +49,13 @@ export default function DApp() {
   const [apiKeyOpen, setApiKeyOpen] = useState(() => !hasApiKey());
 
   const snackbar = useSnackbar();
-  const { favorites, add: addFavorite, remove: removeFavorite } = useFavorites();
+  const { chains, toggleChain, keysPerRoll, setKeysPerRoll } = useSettings();
+  const {
+    favorites,
+    add: addFavorite,
+    addMany: addFavorites,
+    remove: removeFavorite,
+  } = useFavorites();
 
   const onHit = useCallback(() => {
     // A funded address is the whole point of the app, so rolling stops and it cannot
@@ -57,11 +73,13 @@ export default function DApp() {
     elapsedMs,
     ethPrice,
     keysChecked,
+    session,
     halted,
     consecutiveErrors,
+    cancel,
     resumeAfterHit,
     roll,
-  } = useScanner({ testMode, onHit });
+  } = useScanner({ testMode, onHit, chains, keysPerRoll });
 
   const listMenu = useContextMenu('.img3');
   const favMenu = useContextMenu('.img2');
@@ -87,7 +105,7 @@ export default function DApp() {
     snackbar.show('Auto stopped: no signal');
   }, [autoMode, consecutiveErrors, snackbar.show]);
 
-  const anyPanelOpen = apiKeyOpen || favoritesOpen;
+  const anyPanelOpen = apiKeyOpen || favoritesOpen || chainsOpen || statsOpen;
 
   // Single keys, no modifiers: the whole instrument is reachable without ever
   // finding a control. The old handler was registered without a cleanup (so a
@@ -110,6 +128,8 @@ export default function DApp() {
       if (key === 'v') setView((current) => (current === 'sheet' ? 'list' : 'sheet'));
       if (key === 'k') setApiKeyOpen(true);
       if (key === 'f') setFavoritesOpen(true);
+      if (key === 'c') setChainsOpen(true);
+      if (key === 's') setStatsOpen(true);
     };
 
     document.addEventListener('keydown', onKeyDown);
@@ -127,7 +147,16 @@ export default function DApp() {
         ? accounts
         : previousAccounts;
 
-  const totalEth = useMemo(() => totalBalance(visible), [visible]);
+  // Sums are per-chain by necessity, so the readout names one: mainnet when it
+  // is being read, otherwise whichever chain is. Adding a Polygon balance to an
+  // Ethereum one would produce a number denominated in nothing.
+  const displayChain = chains.includes(DEFAULT_CHAIN_ID) ? DEFAULT_CHAIN_ID : chains[0];
+  const displaySymbol = chainById(displayChain)?.symbol ?? '';
+
+  const totalHeld = useMemo(
+    () => totalBalance(visible, displayChain),
+    [visible, displayChain],
+  );
   const funded = useMemo(() => visible.filter(isFunded), [visible]);
 
   // The hit renders at the top of the page, which is no use if the reader is
@@ -170,6 +199,24 @@ export default function DApp() {
     downloadAccounts(favorites, 'favorites');
   };
 
+  const importFavorites = (text) => {
+    const { accounts: parsed } = parseAccounts(text);
+    if (parsed.length === 0) {
+      snackbar.show('No keys found');
+      return 0;
+    }
+
+    const added = addFavorites(parsed);
+    snackbar.show(
+      added === 0
+        ? 'All already kept'
+        : added === parsed.length
+          ? `Kept ${added}`
+          : `Kept ${added} of ${parsed.length}`,
+    );
+    return added;
+  };
+
   const handleApiKeySaved = (saved) => {
     setApiKeySet(saved);
     setApiKeyOpen(false);
@@ -191,7 +238,10 @@ export default function DApp() {
         onTheme={setTheme}
         onKeys={() => setApiKeyOpen(true)}
         onFavorites={() => setFavoritesOpen(true)}
+        onChains={() => setChainsOpen(true)}
+        onStats={() => setStatsOpen(true)}
         favoriteCount={favorites.length}
+        chainCount={chains.length}
       />
 
       <main ref={main} className="min-h-0 flex-1 overflow-y-auto">
@@ -231,8 +281,14 @@ export default function DApp() {
                 <p key={account.address} className="break-all py-0.5 text-xs text-dim">
                   <span className="glow text-strike">{account.privateKey}</span>
                   <span> // </span>
+                  {/* Every chain it landed on, each in its own unit. */}
                   <span className="glow-hot text-strike">
-                    {formatEth(Number(account.balance))} Ξ
+                    {fundedChains(account)
+                      .map(
+                        ({ chainId, amount }) =>
+                          `${formatEth(amount)} ${chainById(chainId)?.symbol ?? ''}`,
+                      )
+                      .join(' + ')}
                   </span>
                 </p>
               ))}
@@ -244,11 +300,27 @@ export default function DApp() {
               the joke and the point at once. */}
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-line pb-3">
             <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
-              <Readout label="holding" value={`${formatEth(totalEth)} Ξ`} hot={totalEth > 0} />
-              <Readout label="usd" value={formatUsd(totalEth, ethPrice)} hot={totalEth > 0} />
-              <span className="hidden text-2xs uppercase tracking-label text-land sm:inline">
-                {KEYS_PER_ROLL} keys / roll
-              </span>
+              <Readout
+                label="holding"
+                value={`${formatEth(totalHeld)} ${displaySymbol}`}
+                hot={totalHeld > 0}
+              />
+              {/* Only meaningful where the native unit is ether. */}
+              {displaySymbol === 'Ξ' && (
+                <Readout
+                  label="usd"
+                  value={formatUsd(totalHeld, ethPrice)}
+                  hot={totalHeld > 0}
+                />
+              )}
+              <button
+                type="button"
+                onClick={() => setChainsOpen(true)}
+                title="Press C"
+                className={`hidden ${CONTROL} sm:inline`}
+              >
+                {chains.length === 1 ? chainById(chains[0])?.name : `${chains.length} chains`}
+              </button>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -287,6 +359,35 @@ export default function DApp() {
               >
                 [ save ]
               </button>
+              {/* The AbortController was already there for unmount; this is a
+                  reader stuck behind a slow lookup reaching the same lever. */}
+              <button
+                type="button"
+                onClick={cancel}
+                disabled={!scanning}
+                title="Abandon the roll in flight"
+                className={CONTROL}
+              >
+                [ stop ]
+              </button>
+
+              <Rule />
+
+              {/* Every size is a whole number of API calls per chain. */}
+              <span className="hidden items-center gap-2 md:flex">
+                {KEYS_PER_ROLL_OPTIONS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={keysPerRoll === option}
+                    onClick={() => setKeysPerRoll(option)}
+                    title={`${option} keys per roll`}
+                    className={keysPerRoll === option ? CONTROL_ON : CONTROL}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </span>
 
               <Rule />
 
@@ -389,7 +490,9 @@ export default function DApp() {
           <kbd className="font-mono">x roll</kbd>
           <kbd className="hidden font-mono sm:inline">a auto</kbd>
           <kbd className="hidden font-mono sm:inline">v view</kbd>
-          <kbd className="hidden font-mono md:inline">t tube</kbd>
+          <kbd className="hidden font-mono md:inline">s stats</kbd>
+          <kbd className="hidden font-mono md:inline">c chains</kbd>
+          <kbd className="hidden font-mono lg:inline">t tube</kbd>
         </div>
       </footer>
 
@@ -408,7 +511,25 @@ export default function DApp() {
         onRemove={removeFavorite}
         onNotify={snackbar.show}
         onExport={exportFavorites}
+        onImport={importFavorites}
         onClose={() => setFavoritesOpen(false)}
+      />
+
+      <ChainPanel
+        open={chainsOpen}
+        chains={chains}
+        keysPerRoll={keysPerRoll}
+        onToggle={toggleChain}
+        onClose={() => setChainsOpen(false)}
+      />
+
+      <StatsPanel
+        open={statsOpen}
+        keysChecked={keysChecked}
+        session={session}
+        chains={chains}
+        keysPerRoll={keysPerRoll}
+        onClose={() => setStatsOpen(false)}
       />
 
       <Snackbar message={snackbar.message} onDismiss={snackbar.dismiss} />

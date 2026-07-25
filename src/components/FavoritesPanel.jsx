@@ -1,3 +1,6 @@
+import { useState } from 'react';
+
+import { parseAccounts } from '../lib/download';
 import BlockieSheet from './BlockieSheet.jsx';
 import ContextMenu from './ContextMenu.jsx';
 import Panel, { Group } from './Panel.jsx';
@@ -20,9 +23,20 @@ export default function FavoritesPanel({
   onRemove,
   onNotify,
   onExport,
+  onImport,
   onClose,
 }) {
+  const [importing, setImporting] = useState(false);
+  const [text, setText] = useState('');
+
   if (!open) return null;
+
+  const submitImport = () => {
+    const added = onImport(text);
+    setText('');
+    setImporting(false);
+    return added;
+  };
 
   return (
     <Panel
@@ -34,14 +48,19 @@ export default function FavoritesPanel({
           <span className="text-2xs uppercase tracking-label text-dim">
             {favorites.length} stored locally
           </span>
-          <button
-            type="button"
-            onClick={onExport}
-            disabled={favorites.length === 0}
-            className={CONTROL}
-          >
-            [ export ]
-          </button>
+          <span className="flex items-center gap-3">
+            <button type="button" onClick={() => setImporting((on) => !on)} className={CONTROL}>
+              [ import ]
+            </button>
+            <button
+              type="button"
+              onClick={onExport}
+              disabled={favorites.length === 0}
+              className={CONTROL}
+            >
+              [ export ]
+            </button>
+          </span>
         </footer>
       }
     >
@@ -56,6 +75,34 @@ export default function FavoritesPanel({
           }}
           onCopy={onNotify}
         />
+      )}
+
+      {/* Export has been here since the beginning with no way back in, so a
+          kept sheet could leave a browser and never return to one. Anything
+          holding 64-hex keys will do; the addresses are re-derived. */}
+      {importing && (
+        <Group title="Import">
+          <textarea
+            value={text}
+            autoFocus
+            spellCheck="false"
+            rows={4}
+            placeholder="paste an export, or any text with private keys in it"
+            aria-label="Keys to import"
+            onChange={(event) => setText(event.target.value)}
+            className="mt-1 w-full resize-y border border-line bg-void px-2 py-1.5 font-mono text-xs text-text outline-none transition-colors placeholder:text-land focus:border-land"
+          />
+          <div className="mt-2 flex items-center justify-between gap-3">
+            {/* Counted the same way the import counts, so the preview cannot
+                promise four keys and then add three. */}
+            <span className="text-2xs uppercase tracking-label text-land">
+              {parseAccounts(text).accounts.length} keys found
+            </span>
+            <button type="button" onClick={submitImport} disabled={!text.trim()} className={CONTROL}>
+              [ add ]
+            </button>
+          </div>
+        </Group>
       )}
 
       <Group title="Sheet">

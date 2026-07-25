@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ETHERSCAN_BATCH_SIZE, KEYS_PER_ROLL, STORAGE_KEYS } from '../config';
-import { generateAccounts, isFunded } from '../lib/accounts';
-import { fetchBalances } from '../lib/etherscan';
+import { KEYS_PER_ROLL, STORAGE_KEYS } from '../config';
+import { fundedChains, generateAccounts, isFunded } from '../lib/accounts';
+import { chainName } from '../lib/chains';
+import { callsPerRoll, fetchBalances } from '../lib/etherscan';
 import { readHits } from '../lib/hits';
 import { fetchEthPrice } from '../lib/price';
 import { readNumber, writeJSON, writeString } from '../lib/storage';
@@ -13,7 +14,7 @@ import { readNumber, writeJSON, writeString } from '../lib/storage';
  * generated list, and `CheckAdrs`, which made ordering implicit and let a failed
  * request leave `loading` stuck on forever. It is one linear async function now.
  */
-export function useScanner({ testMode, onHit }) {
+export function useScanner({ testMode, onHit, chains, keysPerRoll = KEYS_PER_ROLL }) {
   const [accounts, setAccounts] = useState([]);
   const [previousAccounts, setPreviousAccounts] = useState([]);
   const [scanning, setScanning] = useState(false);
@@ -29,6 +30,16 @@ export function useScanner({ testMode, onHit }) {
   // Rolls that have failed back to back. Auto mode watches this so a bad key or
   // a rate limit cannot be answered by asking again every two seconds forever.
   const [consecutiveErrors, setConsecutiveErrors] = useState(0);
+
+  // What this sitting has done, as opposed to `keysChecked`, which is every
+  // key this browser has ever generated. The statistics panel needs both: one
+  // gives a rate, the other a total.
+  const [session, setSession] = useState(() => ({
+    startedAt: Date.now(),
+    keys: 0,
+    rolls: 0,
+    calls: 0,
+  }));
 
   // Guards against overlapping rolls (auto mode ticking faster than the API) and
   // against setting state after unmount.
@@ -73,14 +84,17 @@ export function useScanner({ testMode, onHit }) {
     const entries = funded.map((account) => ({
       address: account.address,
       privateKey: account.privateKey,
-      balance: account.balance,
+      balances: account.balances,
       at: new Date().toISOString(),
     }));
 
     writeJSON(STORAGE_KEYS.hits, [...readHits(), ...entries]);
 
     for (const account of funded) {
-      console.warn(`${account.privateKey} has ${account.balance}Ξ`);
+      const where = fundedChains(account)
+        .map(({ chainId, amount }) => `${amount} on ${chainName(chainId)}`)
+        .join(', ');
+      console.warn(`${account.privateKey} has ${where}`);
     }
     onHitRef.current?.(funded);
   }, []);
@@ -97,7 +111,7 @@ export function useScanner({ testMode, onHit }) {
     setError(null);
     setProgress(10);
 
-    const batch = generateAccounts({ testMode });
+    const batch = generateAccounts({ testMode, count: keysPerRoll });
 
     // Keep the last completed set on screen while the new one resolves, rather
     // than flashing an empty grid.
@@ -109,18 +123,16 @@ export function useScanner({ testMode, onHit }) {
         if (mounted.current && price !== null) setEthPrice(price);
       });
 
-      let completed = 0;
       const balances = await fetchBalances(
         batch.map((account) => account.address),
         {
+          chains,
           signal: controller.signal,
-          onBatch: () => {
-            completed += 1;
-            if (mounted.current) {
-              setProgress(
-                Math.min(90, (completed / Math.ceil(KEYS_PER_ROLL / ETHERSCAN_BATCH_SIZE)) * 90),
-              );
-            }
+          // Progress used to be computed from KEYS_PER_ROLL, which stopped
+          // being the number of calls a roll makes the moment either the batch
+          // size or the chain count could vary. The lookup reports its own.
+          onBatch: ({ completed, total }) => {
+            if (mounted.current) setProgress(Math.min(90, (completed / total) * 90));
           },
         },
       );
@@ -129,7 +141,7 @@ export function useScanner({ testMode, onHit }) {
 
       const scanned = batch.map((account) => ({
         ...account,
-        balance: balances.get(account.address.toLowerCase()) ?? 0,
+        balances: balances.get(account.address.toLowerCase()) ?? {},
       }));
 
       setAccounts(scanned);
@@ -142,6 +154,13 @@ export function useScanner({ testMode, onHit }) {
       const total = readNumber(STORAGE_KEYS.keysChecked, 0) + batch.length;
       writeString(STORAGE_KEYS.keysChecked, String(total));
       setKeysChecked(total);
+
+      setSession((current) => ({
+        ...current,
+        keys: current.keys + batch.length,
+        rolls: current.rolls + 1,
+        calls: current.calls + callsPerRoll(batch.length, chains ?? []),
+      }));
 
       const funded = scanned.filter(isFunded);
       if (funded.length > 0) {
@@ -172,7 +191,7 @@ export function useScanner({ testMode, onHit }) {
         setTimeout(() => mounted.current && setProgress(0), 150);
       }
     }
-  }, [accounts, recordHits, halt, testMode]);
+  }, [accounts, chains, keysPerRoll, recordHits, halt, testMode]);
 
   // Keeps a stable reference for the auto-mode interval, so it never captures a
   // stale `roll` and never needs to be torn down on every render.
@@ -182,6 +201,10 @@ export function useScanner({ testMode, onHit }) {
   });
 
   const rollNow = useCallback(() => rollRef.current(), []);
+
+  // Abandoning a roll rather than waiting it out. The controller was already
+  // here for unmount; a reader stuck behind a slow lookup can use it too.
+  const cancel = useCallback(() => abortRef.current?.abort(), []);
 
   // Acknowledging a find. Clearing `halted` on its own would leave the hit
   // banner on screen over a sheet nobody had asked to keep, so resuming is the
@@ -202,8 +225,10 @@ export function useScanner({ testMode, onHit }) {
     elapsedMs,
     ethPrice,
     keysChecked,
+    session,
     halted,
     consecutiveErrors,
+    cancel,
     resumeAfterHit,
     roll: rollNow,
   };

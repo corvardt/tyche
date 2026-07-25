@@ -28,6 +28,32 @@ export function useFavorites() {
     [favorites, persist],
   );
 
+  /**
+   * Adds many at once, skipping anything already kept.
+   *
+   * Not a loop over `add`: that reads `favorites` from the closure, so every
+   * call in the loop would start from the same list and the last would win.
+   *
+   * @returns {number} how many were actually new
+   */
+  const addMany = useCallback(
+    (incoming) => {
+      const known = new Set(favorites.map((f) => f.address));
+      const fresh = [];
+
+      for (const entry of incoming) {
+        const account = normaliseAccount(entry);
+        if (!account || known.has(account.address)) continue;
+        known.add(account.address);
+        fresh.push(account);
+      }
+
+      if (fresh.length > 0) persist([...favorites, ...fresh]);
+      return fresh.length;
+    },
+    [favorites, persist],
+  );
+
   const remove = useCallback(
     (account) => {
       // Previously `delete FavTable[index]` mutated state in place and left a
@@ -37,5 +63,5 @@ export function useFavorites() {
     [favorites, persist],
   );
 
-  return { favorites, add, remove };
+  return { favorites, add, addMany, remove };
 }

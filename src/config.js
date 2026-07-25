@@ -1,8 +1,21 @@
-/** Wallets generated per roll. */
+/** Wallets generated per roll, unless the reader picks another size. */
 export const KEYS_PER_ROLL = 40;
+
+/** Offered sizes. Each is a whole number of API calls per chain. */
+export const KEYS_PER_ROLL_OPTIONS = [20, 40, 100, 200];
 
 /** Etherscan's `balancemulti` accepts at most 20 addresses per call. */
 export const ETHERSCAN_BATCH_SIZE = 20;
+
+/**
+ * The free tier allows 3 calls/second and 100,000 calls/day. Everything is
+ * spaced to that ceiling; a paid key may raise it, and nothing here breaks if
+ * it is left where it is.
+ *
+ * Source: https://docs.etherscan.io/resources/rate-limits
+ */
+export const ETHERSCAN_CALLS_PER_SECOND = 3;
+export const ETHERSCAN_CALLS_PER_DAY = 100_000;
 
 /** Delay between rolls while auto mode is running. */
 export const AUTO_ROLL_INTERVAL_MS = 2000;
@@ -30,4 +43,6 @@ export const STORAGE_KEYS = {
   favorites: 'favTable',
   hits: 'stonks',
   ethPrice: 'EthPrice',
+  chains: 'chains',
+  keysPerRoll: 'keysPerRoll',
 };

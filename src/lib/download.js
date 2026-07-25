@@ -1,3 +1,5 @@
+import { computeAddress } from 'ethers';
+
 /**
  * Triggers a client-side text download.
  *
@@ -41,4 +43,42 @@ export function accountsToText(accounts) {
 
 export function downloadAccounts(accounts, filename) {
   downloadTextFile(accountsToText(accounts), filename);
+}
+
+/**
+ * Reads back what {@link accountsToText} writes, and rather more besides.
+ *
+ * Export has existed since the beginning with no way in, so a kept sheet could
+ * leave a browser and never return to one. Rather than insist on the exact
+ * shape it emits, this takes any text and pulls the keys out of it: a private
+ * key determines its address, so the addresses in the file are confirmation,
+ * not information, and a list of bare keys is as good as a full export.
+ *
+ * @param {string} text
+ * @returns {{accounts: import('./accounts').Account[], found: number}}
+ */
+export function parseAccounts(text) {
+  const keys = String(text).match(/[0-9a-fA-F]{64}/g) ?? [];
+
+  const seen = new Set();
+  const accounts = [];
+
+  for (const key of keys) {
+    const privateKey = key.toLowerCase();
+    if (seen.has(privateKey)) continue;
+    seen.add(privateKey);
+
+    try {
+      accounts.push({
+        address: computeAddress(`0x${privateKey}`),
+        privateKey,
+        balances: {},
+      });
+    } catch {
+      // Sixty-four hex characters that are not a valid curve scalar. Vanishingly
+      // rare, and not a reason to reject the rest of the file.
+    }
+  }
+
+  return { accounts, found: keys.length };
 }

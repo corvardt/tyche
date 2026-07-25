@@ -1,8 +1,37 @@
 import { memo } from 'react';
 
-import { isFunded } from '../lib/accounts';
+import { fundedChains, isFunded } from '../lib/accounts';
 import { blockie } from '../lib/blockie';
+import { chainById, DEFAULT_CHAIN_ID, explorerAddress } from '../lib/chains';
 import { formatEth } from '../lib/format';
+
+/**
+ * What an account holds, as one cell.
+ *
+ * A single number cannot say where an amount is once a roll reads more than one
+ * chain, and the amounts cannot be added: 1 POL is not 1 Ξ. The largest holding
+ * is named with its own symbol, and anything further is counted rather than
+ * crammed in.
+ */
+function Holding({ account }) {
+  const held = fundedChains(account);
+  if (held.length === 0) return <>{formatEth(0)}</>;
+
+  const [largest] = held;
+  const chain = chainById(largest.chainId);
+
+  return (
+    <>
+      {formatEth(largest.amount)} {chain?.symbol ?? ''}
+      {held.length > 1 && (
+        <span className="text-dim" title={`funded on ${held.length} chains`}>
+          {' '}
+          +{held.length - 1}
+        </span>
+      )}
+    </>
+  );
+}
 
 /**
  * The same batch, read as a log instead of a sheet.
@@ -58,7 +87,10 @@ function AddressTable({ accounts, onSelect, hitClass = '' }) {
                 <td className="px-3 py-1.5 text-xs">
                   {/* The address is the one cell worth leaving the app for. */}
                   <a
-                    href={`https://etherscan.io/address/${account.address}`}
+                    href={explorerAddress(
+                      account.address,
+                      fundedChains(account)[0]?.chainId ?? DEFAULT_CHAIN_ID,
+                    )}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`transition-colors hover:text-strike ${
@@ -88,7 +120,7 @@ function AddressTable({ accounts, onSelect, hitClass = '' }) {
                     funded ? 'glow-hot text-strike' : 'text-dim'
                   }`}
                 >
-                  {formatEth(Number(account.balance) || 0)}
+                  <Holding account={account} />
                 </td>
               </tr>
             );

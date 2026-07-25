@@ -321,6 +321,88 @@
   grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
 }
 
+/* ── Changing mode ──────────────────────────────────────────────────────────
+   The sheet and the field are the same tube showing two different things, so
+   they change the way a channel changes: the picture pulls into a bright line
+   and blooms back out. The swap happens at the bottom of the collapse, where
+   the line hides it — see `useTubeSwitch`.
+
+   `filter: brightness()` rather than a white overlay: the blow-out then comes
+   off the picture itself, the way a real gun overdriving would, and it needs no
+   element stacked above the sheet to catch clicks. */
+@keyframes tube-collapse {
+  0% {
+    transform: scaleY(1);
+    filter: brightness(1) contrast(1);
+  }
+  70% {
+    transform: scaleY(0.08);
+    filter: brightness(2.4) contrast(1.5);
+  }
+  100% {
+    transform: scaleY(0.006);
+    filter: brightness(4.5) contrast(2.2);
+  }
+}
+
+@keyframes tube-bloom {
+  0% {
+    transform: scaleY(0.006) scaleX(1.015);
+    filter: brightness(4.5) contrast(2.2);
+  }
+  28% {
+    transform: scaleY(0.14) scaleX(1.01);
+    filter: brightness(2.2) contrast(1.4);
+  }
+  100% {
+    transform: scaleY(1) scaleX(1);
+    filter: brightness(1) contrast(1);
+  }
+}
+
+.tube-collapse,
+.tube-bloom {
+  transform-origin: center center;
+  will-change: transform, filter;
+}
+
+.tube-collapse {
+  animation: tube-collapse 130ms cubic-bezier(0.6, 0, 0.9, 0.4) forwards;
+}
+
+.tube-bloom {
+  animation: tube-bloom 240ms cubic-bezier(0.16, 0.9, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tube-collapse,
+  .tube-bloom {
+    animation: none;
+  }
+}
+
+/* ── The field ──────────────────────────────────────────────────────────────
+   What stands where the sheet stands while the screen is running. It holds the
+   sheet's own shape — five cells across, eight past the breakpoint, as many
+   rows as the batch needs — so switching between the two moves nothing.
+
+   The canvas paints nothing but grain and erases toward transparent, so the
+   stock underneath it is this rule's business and never the canvas's: one less
+   place for the two media to disagree. */
+.field {
+  display: block;
+  width: 100%;
+  aspect-ratio: 5 / var(--rows-narrow, 8);
+  background: var(--c-void);
+  border: 1px solid var(--c-line);
+}
+
+@media (min-width: 640px) {
+  .field {
+    aspect-ratio: 8 / var(--rows-wide, 5);
+  }
+}
+
 .cell {
   position: relative;
   aspect-ratio: 1;

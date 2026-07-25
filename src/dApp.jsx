@@ -8,6 +8,7 @@ import { hasApiKey } from './lib/etherscan';
 import { formatCount, formatEth, formatUsd } from './lib/format';
 import { emit } from './lib/telemetry';
 import { useTheme } from './lib/theme';
+import { useTubeSwitch } from './hooks/useTubeSwitch';
 
 import { useContextMenu } from './hooks/useContextMenu';
 import { useFavorites } from './hooks/useFavorites';
@@ -19,6 +20,7 @@ import { useSnackbar } from './hooks/useSnackbar';
 import AddressTable from './components/AddressTable';
 import ApiKeyDialog from './components/ApiKeyDialog';
 import BlockieSheet from './components/BlockieSheet';
+import PhosphorField from './components/PhosphorField';
 import ChainPanel from './components/ChainPanel';
 import ContextMenu from './components/ContextMenu';
 import Crt, { Ticks } from './components/Crt';
@@ -177,6 +179,26 @@ export default function DApp() {
   const visible = scanning || accounts.length > 0 ? accounts : previousAccounts;
   const slots = scanning ? keysPerRoll : 0;
 
+  // The one state the contact sheet cannot describe: auto, screened, thousands
+  // a second, nothing surviving. Everywhere else a batch is something you can
+  // actually look at, so everywhere else keeps its blockies. A find drops out
+  // of this on its own — it switches auto off, and the sheet comes back holding
+  // the batch that stopped the machine.
+  const streaming = autoMode && screening && Boolean(filter) && !halted;
+
+  // A roll starts and finishes about eighty times a second under the field, so
+  // anything wired straight to `scanning` flickers at eighty hertz. `[ roll ]`
+  // was the worst of it: its label alternated between `roll` and `rolling`,
+  // which are different widths, so the whole control row jittered sideways.
+  // Streaming is one continuous roll as far as the controls are concerned —
+  // held down, stoppable, and no per-batch progress worth reporting.
+  const busy = streaming || scanning;
+
+  // The sheet does not cut to the field, it changes channel. `tube.shown` is
+  // the mode actually on screen, which lags `streaming` by the length of the
+  // collapse so the swap lands while the picture is a closed line.
+  const tube = useTubeSwitch(streaming);
+
   // Sums are per-chain by necessity, so the readout names one: mainnet when it
   // is being read, otherwise whichever chain is. Adding a Polygon balance to an
   // Ethereum one would produce a number denominated in nothing.
@@ -262,7 +284,9 @@ export default function DApp() {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <Crt />
-      <LoadingBar percent={progress} />
+      {/* Held dark while the field is up. The bar reports one batch's progress,
+          and at eighty batches a second it is a strobe reporting nothing. */}
+      <LoadingBar percent={streaming ? 0 : progress} />
 
       <Header
         scanning={scanning}
@@ -361,11 +385,11 @@ export default function DApp() {
               <button
                 type="button"
                 onClick={roll}
-                disabled={scanning || halted}
+                disabled={busy || halted}
                 title="Press X"
-                className={scanning ? CONTROL_ON : CONTROL}
+                className={busy ? CONTROL_ON : CONTROL}
               >
-                [ {scanning ? 'rolling' : 'roll'} ]
+                [ {busy ? 'rolling' : 'roll'} ]
               </button>
               <button
                 type="button"
@@ -398,7 +422,7 @@ export default function DApp() {
               <button
                 type="button"
                 onClick={cancel}
-                disabled={!scanning}
+                disabled={!busy}
                 title="Abandon the roll in flight"
                 className={CONTROL}
               >
@@ -490,15 +514,24 @@ export default function DApp() {
                 {/* Not keyed on the batch any more: that remounted the whole
                     sheet and replayed its fade-in every roll, which at this
                     cadence is a strobe. The cells handle their own arrival. */}
-                <div className="arrive">
-                  <BlockieSheet
-                    accounts={visible}
-                    resolved={resolved}
-                    slots={slots}
-                    dimMissed={halted}
-                    hitClass="img3"
-                    onSelect={listMenu.open}
-                  />
+                <div className={`arrive ${tube.phase ? `tube-${tube.phase}` : ''}`}>
+                  {tube.shown ? (
+                    <PhosphorField
+                      screened={session.screened}
+                      candidates={session.candidates}
+                      batchSize={keysPerRoll}
+                      theme={theme}
+                    />
+                  ) : (
+                    <BlockieSheet
+                      accounts={visible}
+                      resolved={resolved}
+                      slots={slots}
+                      dimMissed={halted}
+                      hitClass="img3"
+                      onSelect={listMenu.open}
+                    />
+                  )}
                 </div>
                 <Ticks />
               </div>

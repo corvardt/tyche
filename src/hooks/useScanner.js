@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ETHERSCAN_BATCH_SIZE, KEYS_PER_ROLL, STORAGE_KEYS } from '../config';
 import { generateAccounts, isFunded } from '../lib/accounts';
 import { fetchBalances } from '../lib/etherscan';
+import { readHits } from '../lib/hits';
 import { fetchEthPrice } from '../lib/price';
-import { readNumber, readString, writeString } from '../lib/storage';
+import { readNumber, writeJSON, writeString } from '../lib/storage';
 
 /**
  * Owns one roll: generate a batch, price it, look up balances, publish results.
@@ -25,6 +26,9 @@ export function useScanner({ testMode, onHit }) {
     readNumber(STORAGE_KEYS.keysChecked, 0),
   );
   const [halted, setHalted] = useState(false);
+  // Rolls that have failed back to back. Auto mode watches this so a bad key or
+  // a rate limit cannot be answered by asking again every two seconds forever.
+  const [consecutiveErrors, setConsecutiveErrors] = useState(0);
 
   // Guards against overlapping rolls (auto mode ticking faster than the API) and
   // against setting state after unmount.
@@ -32,26 +36,48 @@ export function useScanner({ testMode, onHit }) {
   const mounted = useRef(true);
   const onHitRef = useRef(onHit);
 
+  // `halted` is mirrored into a ref because the guard inside `roll` has to read
+  // it synchronously. Resuming sets state and then rolls in the same tick, and a
+  // closure over the state value would still say `true` at that point and drop
+  // the roll on the floor. It also keeps `halted` out of `roll`'s deps.
+  const haltedRef = useRef(false);
+  const halt = useCallback((next) => {
+    haltedRef.current = next;
+    setHalted(next);
+  }, []);
+
   useEffect(() => {
     onHitRef.current = onHit;
   });
+
+  // `fetchBalances` and `fetchEthPrice` have both taken a `signal` from the
+  // start, and nothing ever passed one: a roll in flight outlived the component
+  // and kept two requests running against an unmounted tree.
+  const abortRef = useRef(null);
 
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      abortRef.current?.abort();
     };
   }, []);
 
   const recordHits = useCallback((funded) => {
     if (funded.length === 0) return;
 
-    const lines = funded.map((a) => `${a.privateKey} has ${a.balance}Ξ`);
-    const existing = readString(STORAGE_KEYS.hits);
-    writeString(
-      STORAGE_KEYS.hits,
-      existing ? [existing, ...lines].join('; ') : lines.join('; '),
-    );
+    // Hits were stored as `"<key> has <n>Ξ"` segments joined with '; ' — one
+    // string holding the only data in the app that has to outlive the tab, in
+    // the least readable form available. They are records now, with the address
+    // and the time they landed, which the old format threw away.
+    const entries = funded.map((account) => ({
+      address: account.address,
+      privateKey: account.privateKey,
+      balance: account.balance,
+      at: new Date().toISOString(),
+    }));
+
+    writeJSON(STORAGE_KEYS.hits, [...readHits(), ...entries]);
 
     for (const account of funded) {
       console.warn(`${account.privateKey} has ${account.balance}Ξ`);
@@ -60,8 +86,11 @@ export function useScanner({ testMode, onHit }) {
   }, []);
 
   const roll = useCallback(async () => {
-    if (inFlight.current || halted) return;
+    if (inFlight.current || haltedRef.current) return;
     inFlight.current = true;
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     const started = Date.now();
     setScanning(true);
@@ -76,7 +105,7 @@ export function useScanner({ testMode, onHit }) {
     setAccounts(batch);
 
     try {
-      fetchEthPrice().then((price) => {
+      fetchEthPrice({ signal: controller.signal }).then((price) => {
         if (mounted.current && price !== null) setEthPrice(price);
       });
 
@@ -84,6 +113,7 @@ export function useScanner({ testMode, onHit }) {
       const balances = await fetchBalances(
         batch.map((account) => account.address),
         {
+          signal: controller.signal,
           onBatch: () => {
             completed += 1;
             if (mounted.current) {
@@ -107,6 +137,7 @@ export function useScanner({ testMode, onHit }) {
       setHasScanned(true);
       setProgress(100);
       setElapsedMs(Date.now() - started);
+      setConsecutiveErrors(0);
 
       const total = readNumber(STORAGE_KEYS.keysChecked, 0) + batch.length;
       writeString(STORAGE_KEYS.keysChecked, String(total));
@@ -114,14 +145,18 @@ export function useScanner({ testMode, onHit }) {
 
       const funded = scanned.filter(isFunded);
       if (funded.length > 0) {
-        setHalted(true);
+        halt(true);
         recordHits(funded);
       }
     } catch (cause) {
       if (!mounted.current) return;
+      // A roll we cancelled ourselves is not a failure to report.
+      if (controller.signal.aborted) return;
+
       // Surfacing this is the whole point: a failed lookup used to leave the app
       // spinning on a disabled button with nothing on screen to explain why.
       setError(cause.message ?? 'Balance lookup failed');
+      setConsecutiveErrors((count) => count + 1);
       // Key generation does not depend on Etherscan, so the batch stays on screen
       // with unknown balances. Dropping it here (back to an empty
       // `previousAccounts` on the first roll) left the app permanently blank
@@ -131,12 +166,13 @@ export function useScanner({ testMode, onHit }) {
       setProgress(0);
     } finally {
       inFlight.current = false;
+      if (abortRef.current === controller) abortRef.current = null;
       if (mounted.current) {
         setScanning(false);
         setTimeout(() => mounted.current && setProgress(0), 150);
       }
     }
-  }, [accounts, halted, previousAccounts, recordHits, testMode]);
+  }, [accounts, recordHits, halt, testMode]);
 
   // Keeps a stable reference for the auto-mode interval, so it never captures a
   // stale `roll` and never needs to be torn down on every render.
@@ -146,6 +182,15 @@ export function useScanner({ testMode, onHit }) {
   });
 
   const rollNow = useCallback(() => rollRef.current(), []);
+
+  // Acknowledging a find. Clearing `halted` on its own would leave the hit
+  // banner on screen over a sheet nobody had asked to keep, so resuming is the
+  // same gesture as rolling again: the batch that stopped the machine is
+  // replaced by the one that follows it.
+  const resumeAfterHit = useCallback(() => {
+    halt(false);
+    rollRef.current();
+  }, [halt]);
 
   return {
     accounts,
@@ -158,7 +203,8 @@ export function useScanner({ testMode, onHit }) {
     ethPrice,
     keysChecked,
     halted,
-    resumeAfterHit: () => setHalted(false),
+    consecutiveErrors,
+    resumeAfterHit,
     roll: rollNow,
   };
 }

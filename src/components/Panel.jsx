@@ -12,6 +12,11 @@ export default function Panel({ title, width = 380, onClose, children, footer })
   useEffect(() => {
     const previous = document.activeElement;
 
+    // Land focus inside the panel, or the trap below has nothing to trap and
+    // the first Tab walks the page behind the backdrop. The key dialog focuses
+    // its own input, so only take focus when nothing already has it.
+    if (!panel.current?.contains(document.activeElement)) closeRef.current?.focus();
+
     const onKey = (event) => {
       if (event.key === 'Escape') {
         onClose();

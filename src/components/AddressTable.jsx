@@ -1,5 +1,7 @@
-import makeBlockie from 'ethereum-blockies-base64';
+import { memo } from 'react';
+
 import { isFunded } from '../lib/accounts';
+import { blockie } from '../lib/blockie';
 import { formatEth } from '../lib/format';
 
 /**
@@ -10,7 +12,7 @@ import { formatEth } from '../lib/format';
  * previous table hung its columns off `pr-[20rem]` padding inside flex rows,
  * which is why nothing lined up below 1400px.
  */
-export default function AddressTable({ accounts, onSelect, hitClass = '' }) {
+function AddressTable({ accounts, onSelect, hitClass = '' }) {
   return (
     <div className="w-full overflow-x-auto border border-line">
       <table className="w-full min-w-[52rem] border-collapse text-left">
@@ -44,7 +46,7 @@ export default function AddressTable({ accounts, onSelect, hitClass = '' }) {
                   <span className={`block h-4 w-4 ${funded ? '' : 'opacity-70'}`}>
                     <img
                       className={`blockie ${hitClass}`}
-                      src={makeBlockie(account.address)}
+                      src={blockie(account.address)}
                       alt=""
                       draggable="false"
                     />
@@ -96,3 +98,6 @@ export default function AddressTable({ accounts, onSelect, hitClass = '' }) {
     </div>
   );
 }
+
+// Same reasoning as the sheet: the rows only change when the batch does.
+export default memo(AddressTable);

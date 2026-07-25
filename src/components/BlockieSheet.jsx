@@ -1,5 +1,7 @@
-import makeBlockie from 'ethereum-blockies-base64';
+import { memo } from 'react';
+
 import { isFunded } from '../lib/accounts';
+import { blockie } from '../lib/blockie';
 
 /**
  * The batch as a contact sheet: forty exposures butted against one hairline,
@@ -16,7 +18,7 @@ import { isFunded } from '../lib/accounts';
  * @param {string} [props.hitClass]   marker class the click-outside test looks for
  * @param {(event: MouseEvent, account: object) => void} [props.onSelect]
  */
-export default function BlockieSheet({
+function BlockieSheet({
   accounts,
   fill = false,
   dimMissed = false,
@@ -32,7 +34,7 @@ export default function BlockieSheet({
         const image = (
           <img
             className={`blockie ${hitClass}`}
-            src={makeBlockie(account.address)}
+            src={blockie(account.address)}
             alt={`Identicon for ${account.address}`}
             draggable="false"
           />
@@ -65,3 +67,8 @@ export default function BlockieSheet({
     </div>
   );
 }
+
+// Forty cells, each an image decode, re-rendered by anything that touched the
+// page: every progress tick, the elapsed-time readout, the price landing. None
+// of those change a single blockie.
+export default memo(BlockieSheet);

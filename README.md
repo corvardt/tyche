@@ -37,7 +37,14 @@ load; see below. Nothing else is configured, and there is no `.env` to fill in.
 Rolling stops, auto mode switches off, and the key takes the top of the page in
 reserved white. The sheet behind it dims every address that missed. The hit is
 also appended to `localStorage` under `stonks` and logged to the console, so a
-find survives the tab being closed before you read it.
+find survives the tab being closed before you read it. It is stored as a record
+with the address, the key, the balance and the time it landed; hits written by
+earlier versions, which kept one flat string and no address, are read back and
+their addresses recovered from their keys.
+
+`resume` in that banner is the way on: it clears the hold and rolls again. It is
+a click and not a key, because `x` is muscle memory by the thousandth roll and a
+find is the one thing that should not be dismissed by reflex.
 
 ## The API key
 

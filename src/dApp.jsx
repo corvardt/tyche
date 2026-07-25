@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { AUTO_ROLL_INTERVAL_MS, KEYS_PER_ROLL } from './config';
+import { AUTO_ROLL_INTERVAL_MS, AUTO_STOP_AFTER_ERRORS, KEYS_PER_ROLL } from './config';
 import { isFunded, totalBalance } from './lib/accounts';
 import { downloadAccounts } from './lib/download';
 import { hasApiKey } from './lib/etherscan';
@@ -58,6 +58,8 @@ export default function DApp() {
     ethPrice,
     keysChecked,
     halted,
+    consecutiveErrors,
+    resumeAfterHit,
     roll,
   } = useScanner({ testMode, onHit });
 
@@ -75,6 +77,15 @@ export default function DApp() {
     const id = setInterval(roll, AUTO_ROLL_INTERVAL_MS);
     return () => clearInterval(id);
   }, [autoMode, roll]);
+
+  // Auto mode already stops on a find; it should stop on a wall too. A wrong
+  // key or a spent rate limit fails every roll, and the old loop kept firing
+  // into it every two seconds with only a one-line error to show for it.
+  useEffect(() => {
+    if (!autoMode || consecutiveErrors < AUTO_STOP_AFTER_ERRORS) return;
+    setAutoMode(false);
+    snackbar.show('Auto stopped: no signal');
+  }, [autoMode, consecutiveErrors, snackbar.show]);
 
   const anyPanelOpen = apiKeyOpen || favoritesOpen;
 
@@ -200,6 +211,21 @@ export default function DApp() {
                 <span className="shrink-0 text-2xs uppercase tracking-label text-dim">
                   rolling stopped
                 </span>
+                {/* The way back out. Without this the instrument stopped for
+                    good on a find and only a reload restarted it, which made
+                    test mode a one-shot: it plants a funded address in every
+                    batch, so the first roll halted the machine permanently.
+                    Deliberately a click and not a key: `x` is muscle memory by
+                    the thousandth roll, and a real find is the one thing that
+                    must not be dismissed by reflex. */}
+                <button
+                  type="button"
+                  onClick={resumeAfterHit}
+                  title="Acknowledge and roll again"
+                  className={CONTROL}
+                >
+                  [ resume ]
+                </button>
               </div>
               {funded.map((account) => (
                 <p key={account.address} className="break-all py-0.5 text-xs text-dim">

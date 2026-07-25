@@ -7,6 +7,14 @@ export const ETHERSCAN_BATCH_SIZE = 20;
 /** Delay between rolls while auto mode is running. */
 export const AUTO_ROLL_INTERVAL_MS = 2000;
 
+/**
+ * Consecutive failed rolls before auto mode switches itself off. A wrong key or
+ * an exhausted rate limit fails every roll, and auto answered that by asking
+ * again every two seconds indefinitely — which, for a rate limit, is the one
+ * response guaranteed not to clear it.
+ */
+export const AUTO_STOP_AFTER_ERRORS = 3;
+
 /** How long a fetched ETH price stays fresh, so a roll loop can't hammer CoinGecko. */
 export const PRICE_MAX_AGE_MS = 60_000;
 

@@ -46,4 +46,5 @@ export const STORAGE_KEYS = {
   chains: 'chains',
   keysPerRoll: 'keysPerRoll',
   verbose: 'verbose',
+  screening: 'screening',
 };

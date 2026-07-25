@@ -15,6 +15,7 @@ npm install
 npm run dev      # dev server
 npm run build    # production build to ./dist
 npm run preview  # serve that build
+npm test         # unit tests
 ```
 
 An Etherscan API key is needed for balances, and the app asks for yours on first
@@ -30,7 +31,8 @@ load; see below. Nothing else is configured, and there is no `.env` to fill in.
 | **List** | The same batch as a log: channel number, address, private key, balance. The address links to Etherscan |
 | **Keep** | Kept keys go to `localStorage` and open from `kept` in the header. Export writes them as address/key pairs; import reads them back, or any text with private keys in it, since a key determines its own address |
 | **Chains** | Which chains a roll is read against, and what that costs. Ethereum only unless you say otherwise. Read the cost panel before adding any |
-| **Stats** | Rate, session, the fraction of the keyspace covered, and what the day's API allowance has left. Also where the status line is switched on |
+| **Stats** | Rate, session, the fraction of the keyspace covered, and what the day's API allowance has left. Also where the screen and the status line are switched on |
+| **Screen** | Load a list of addresses worth finding and the chain is only asked about the ones that match. Two orders of magnitude more keys a day, and no API key needed for the misses |
 | **Status** | A line along the bottom edge naming everything as it happens, one entry at a time. On unless you turn it off under `stats` |
 | **Test** | Plants a known funded address (a Binance hot wallet) in the batch, so the found-one path can be exercised without waiting for a 1-in-2^160 event |
 | **Keys** | `x` roll · `a` auto · `v` sheet/list · `k` api key · `f` kept keys · `c` chains · `s` stats · `t` tube/paper |
@@ -94,6 +96,50 @@ nobody. If the machine ever outruns the line the backlog is dropped from the
 front rather than allowed to lag; in practice the rate limiter holds calls below
 the speed the line can display, so it keeps up.
 
+## The screen
+
+The instrument is quota-bound, not compute-bound, and by a long way. A free
+Etherscan key buys two million lookups a day; the same browser generates keys at
+about two and a half thousand a second, which is two hundred and thirty million
+a day. Everything above is the machine idling while it waits for its allowance.
+
+Load a list of addresses worth finding and that inverts. Every generated address
+is checked against a Bloom filter held in memory, at over a million a second, and
+the chain is asked only about the ones that match. `load addresses` under `stats`
+takes a plain text or CSV file — a BigQuery export, a Dune result, a bare list —
+and builds the filter in the browser. There is a command-line equivalent for
+building one ahead of time:
+
+```sh
+npm run build-filter -- top-accounts.csv --out public/funded.bin
+```
+
+which a self-hosted deployment can ship in `public/`, and which the app loads if
+nothing has been imported.
+
+At a hundred thousand addresses the filter is about 470kB and reports a false
+candidate roughly one time in a hundred million — so at 230M keys a day, about
+two candidates to confirm, against an allowance of a hundred thousand calls. A
+roll that raises no candidate costs nothing at all, which means an ordinary roll
+needs no API key: without one the screen still runs and only a candidate goes
+unconfirmed.
+
+None of this improves the odds. It is still one in 2^160, and 230M keys a day
+still covers about 1e-40 of the keyspace. It is a hundred times more instrument
+for no more quota, and the arithmetic of what it is not finding is in `stats`.
+
+What goes in the list is the interesting decision. Screening is only worth the
+bytes it spends, and most addresses holding *something* hold dust — an address
+with 0.000005 Ξ costs the same room in the filter as one with thirty, and raises
+a candidate worth the same nothing. Filtering the list by a minimum balance
+before building makes the filter smaller, the download shorter and every
+candidate worth confirming. `key_list/balance_checker.py` does that pass.
+
+The list is yours for the same reasons the API key is: it is large, it goes
+stale, and what counts as worth finding is your call. Nothing is bundled, and
+the file never leaves the browser — it is read locally and the filter is built
+there.
+
 ## Chains, and what they cost
 
 Etherscan's V2 API serves sixty-odd chains from one endpoint on one key, so
@@ -141,6 +187,9 @@ people look for first.
 | `src/lib/chains.js` | The chains a roll can read, which of them a free key can reach, and where to link each one |
 | `src/lib/cost.js` | What a setting costs to run, and the arithmetic behind the chain panel's warning |
 | `src/lib/limiter.js` | Spaces every outgoing call so no combination of chains and batch size outruns the plan |
+| `src/lib/bloom.js` | The filter: sizing, building, reading, and the membership test every generated address goes through |
+| `src/lib/filterStore.js` | Where an imported filter is kept, and why it can never be allowed to hang |
+| `scripts/build-filter.mjs` | Builds a filter from an address list, ahead of time |
 | `src/lib/telemetry.js` | The commentary bus. Everything publishes here; the status line is the only subscriber |
 | `src/components/StatusLine.jsx` | That commentary, one line, bottom edge |
 | `src/lib/theme.js` | Medium selection, stored domain-wide as a cookie on `.unmod.fun` |

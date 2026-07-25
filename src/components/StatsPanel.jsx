@@ -40,6 +40,13 @@ export default function StatsPanel({
   keysPerRoll,
   verbose,
   onVerbose,
+  filter,
+  filterError,
+  screening,
+  onScreening,
+  importing,
+  onImportFilter,
+  onClearFilter,
 }) {
   const [usage, setUsage] = useState(null);
   const [now, setNow] = useState(Date.now());
@@ -71,6 +78,7 @@ export default function StatsPanel({
   const keysPerSecond = session.keys / (elapsedMs / 1000);
   const cost = describeCost({ keysPerRoll, chains });
   const years = yearsToExhaust(keysPerSecond);
+  const screened = Boolean(filter && screening);
 
   return (
     <Panel title="Statistics" width={480} onClose={onClose}>
@@ -94,6 +102,71 @@ export default function StatsPanel({
           are generated, every call and the chain it went to, every wait the rate limiter imposed,
           and every find.
         </p>
+      </Group>
+
+      {/* ── The screen ────────────────────────────────────────────────────
+          What moves the ceiling. A quota buys ~23 lookups a second; the same
+          browser generates and screens thousands. */}
+      <Group title="Screen">
+        {filter ? (
+          <>
+            <div className="mt-1 flex items-baseline justify-between gap-4">
+              <button
+                type="button"
+                aria-pressed={screening}
+                onClick={() => onScreening(!screening)}
+                className={`flex items-baseline gap-2 ${screening ? CONTROL_ON : CONTROL}`}
+              >
+                <span>{screening ? '[x]' : '[ ]'}</span>
+                <span>screen against the filter</span>
+              </button>
+            </div>
+            <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+              <Row label="addresses" value={formatCount(filter.n)} />
+              <Row label="size" value={`${Math.round(filter.byteLength / 1024)} kB`} />
+              <Row
+                label="false candidates"
+                value={`1 in ${formatCount(Math.round(1 / filter.falsePositiveRate))}`}
+              />
+              <Row label="screened this session" value={formatCount(session.screened)} />
+              <Row label="candidates raised" value={formatCount(session.candidates)} />
+            </dl>
+          </>
+        ) : (
+          <p className="max-w-[46ch] py-1 text-xs leading-5 text-dim">
+            No filter, so every address is read against the chain and the daily allowance is what
+            sets the rate. Load a list of addresses worth screening against and that stops being
+            true.
+          </p>
+        )}
+
+        {filterError && <p className="glow mt-2 text-xs text-strike">{filterError}</p>}
+
+        {/* The list is the reader's, for the same reason the API key is: it is
+            large, it goes stale, and which addresses are worth screening
+            against is their call. A plain text file of addresses is enough —
+            the filter is built here from whatever is in it. */}
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <label className={`${CONTROL} cursor-pointer`}>
+            {importing ? '[ building ]' : '[ load addresses ]'}
+            <input
+              type="file"
+              accept=".txt,.csv,.tsv,.bin,text/plain,text/csv"
+              className="hidden"
+              disabled={importing}
+              onChange={(event) => {
+                const [file] = event.target.files ?? [];
+                event.target.value = '';
+                if (file) onImportFilter(file);
+              }}
+            />
+          </label>
+          {filter && (
+            <button type="button" onClick={onClearFilter} className={CONTROL}>
+              [ clear ]
+            </button>
+          )}
+        </div>
       </Group>
 
       <Group title="This session">
@@ -129,9 +202,17 @@ export default function StatsPanel({
             value={Number.isFinite(years) ? `${years.toExponential(1)} years` : '—'}
           />
           <Row
-            label="quota ceiling"
-            value={`${formatCount(Math.round(cost.keysPerDay))} keys / day`}
-            title="Most keys a free tier's 100,000 daily calls can reach at this chain count"
+            label={screened ? 'screened, so bound by' : 'quota ceiling'}
+            value={
+              screened
+                ? `${formatCount(Math.round(keysPerSecond * 86_400))} keys / day`
+                : `${formatCount(Math.round(cost.keysPerDay))} keys / day`
+            }
+            title={
+              screened
+                ? 'Screening locally, the allowance no longer sets the rate — generation does'
+                : "Most keys a free tier's 100,000 daily calls can reach at this chain count"
+            }
           />
         </dl>
         <p className="mt-2 max-w-[46ch] text-xs leading-5 text-dim">

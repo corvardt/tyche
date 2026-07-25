@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { KEYS_PER_ROLL, STORAGE_KEYS } from '../config';
 import { fundedChains, generateAccounts, isFunded } from '../lib/accounts';
+import { mightContain } from '../lib/bloom';
 import { chainName } from '../lib/chains';
 import { callsPerRoll, fetchBalances } from '../lib/etherscan';
 import { readHits } from '../lib/hits';
@@ -15,7 +16,13 @@ import { emit } from '../lib/telemetry';
  * generated list, and `CheckAdrs`, which made ordering implicit and let a failed
  * request leave `loading` stuck on forever. It is one linear async function now.
  */
-export function useScanner({ testMode, onHit, chains, keysPerRoll = KEYS_PER_ROLL }) {
+export function useScanner({
+  testMode,
+  onHit,
+  chains,
+  keysPerRoll = KEYS_PER_ROLL,
+  filter = null,
+}) {
   const [accounts, setAccounts] = useState([]);
   const [previousAccounts, setPreviousAccounts] = useState([]);
   const [scanning, setScanning] = useState(false);
@@ -40,6 +47,8 @@ export function useScanner({ testMode, onHit, chains, keysPerRoll = KEYS_PER_ROL
     keys: 0,
     rolls: 0,
     calls: 0,
+    screened: 0,
+    candidates: 0,
   }));
 
   // Guards against overlapping rolls (auto mode ticking faster than the API) and
@@ -143,19 +152,40 @@ export function useScanner({ testMode, onHit, chains, keysPerRoll = KEYS_PER_ROL
         if (mounted.current && price !== null) setEthPrice(price);
       });
 
-      const balances = await fetchBalances(
-        batch.map((account) => account.address),
-        {
-          chains,
-          signal: controller.signal,
-          // Progress used to be computed from KEYS_PER_ROLL, which stopped
-          // being the number of calls a roll makes the moment either the batch
-          // size or the chain count could vary. The lookup reports its own.
-          onBatch: ({ completed, total }) => {
-            if (mounted.current) setProgress(Math.min(90, (completed / total) * 90));
-          },
-        },
-      );
+      // With a filter loaded, the chain is asked about candidates only. Almost
+      // every roll has none, and costs nothing: the quota stops being what
+      // limits how many keys a day can be checked, and generation starts being
+      // it instead — about two orders of magnitude further out.
+      let toRead = batch;
+      if (filter) {
+        const screenedAt = Date.now();
+        toRead = batch.filter((account) => mightContain(filter, account.address));
+        emit(
+          'screen',
+          `${batch.length} keys · ${toRead.length} candidate${toRead.length === 1 ? '' : 's'} · ${Date.now() - screenedAt}ms`,
+        );
+      }
+
+      // A screened roll with nothing to confirm needs no API at all — not even
+      // a key. That is the ordinary outcome, and it is why a filter lets the
+      // instrument run without one.
+      const balances =
+        toRead.length === 0
+          ? new Map()
+          : await fetchBalances(
+              toRead.map((account) => account.address),
+              {
+                chains,
+                signal: controller.signal,
+                // Progress used to be computed from KEYS_PER_ROLL, which
+                // stopped being the number of calls a roll makes the moment
+                // either the batch size or the chain count could vary. The
+                // lookup reports its own.
+                onBatch: ({ completed, total }) => {
+                  if (mounted.current) setProgress(Math.min(90, (completed / total) * 90));
+                },
+              },
+            );
 
       if (!mounted.current) return;
 
@@ -179,7 +209,9 @@ export function useScanner({ testMode, onHit, chains, keysPerRoll = KEYS_PER_ROL
         ...current,
         keys: current.keys + batch.length,
         rolls: current.rolls + 1,
-        calls: current.calls + callsPerRoll(batch.length, chains ?? []),
+        calls: current.calls + (filter ? callsPerRoll(toRead.length, chains ?? []) : callsPerRoll(batch.length, chains ?? [])),
+        screened: current.screened + (filter ? batch.length : 0),
+        candidates: current.candidates + (filter ? toRead.length : 0),
       }));
 
       const funded = scanned.filter(isFunded);
@@ -220,7 +252,7 @@ export function useScanner({ testMode, onHit, chains, keysPerRoll = KEYS_PER_ROL
         setTimeout(() => mounted.current && setProgress(0), 150);
       }
     }
-  }, [accounts, chains, keysPerRoll, recordHits, halt, testMode]);
+  }, [accounts, chains, filter, keysPerRoll, recordHits, halt, testMode]);
 
   // Keeps a stable reference for the auto-mode interval, so it never captures a
   // stale `roll` and never needs to be torn down on every render.

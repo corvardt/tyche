@@ -5,3 +5,10 @@ dist
 *.local
 .DS_Store
 vite.config.js.timestamp-*
+
+# Address lists and the filters built from them: large, personal, and quickly
+# stale. The app takes one through `load addresses`; nothing is bundled.
+key_list/
+src/assets/
+public/funded.bin
+.venv-checker/

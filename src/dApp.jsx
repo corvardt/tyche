@@ -15,6 +15,7 @@ import { useTheme } from './lib/theme';
 
 import { useContextMenu } from './hooks/useContextMenu';
 import { useFavorites } from './hooks/useFavorites';
+import { useFilter } from './hooks/useFilter';
 import { useScanner } from './hooks/useScanner';
 import { useSettings } from './hooks/useSettings';
 import { useSnackbar } from './hooks/useSnackbar';
@@ -51,7 +52,15 @@ export default function DApp() {
   const [apiKeyOpen, setApiKeyOpen] = useState(() => !hasApiKey());
 
   const snackbar = useSnackbar();
-  const { chains, toggleChain, keysPerRoll, setKeysPerRoll, verbose, setVerbose } =
+  const {
+    filter,
+    error: filterError,
+    loading: filterLoading,
+    importing: filterImporting,
+    importFile: importFilter,
+    clear: clearFilter,
+  } = useFilter();
+  const { chains, toggleChain, keysPerRoll, setKeysPerRoll, verbose, setVerbose, screening, setScreening } =
     useSettings();
   const {
     favorites,
@@ -82,16 +91,19 @@ export default function DApp() {
     cancel,
     resumeAfterHit,
     roll,
-  } = useScanner({ testMode, onHit, chains, keysPerRoll });
+  } = useScanner({ testMode, onHit, chains, keysPerRoll, filter: screening ? filter : null });
 
   const listMenu = useContextMenu('.img3');
   const favMenu = useContextMenu('.img2');
 
-  // First roll on mount. This lived in a `useState(callback)` call, which happens
-  // to run once but is not what useState means and fires during render.
+  // First roll on mount, but not before the filter has had its chance to load.
+  // Rolling immediately raced it: the opening batch went to the API even when a
+  // filter was about to make that unnecessary, which on a browser with no key
+  // meant the app greeted everyone with an error it was about to stop needing.
   useEffect(() => {
+    if (filterLoading) return;
     roll();
-  }, [roll]);
+  }, [filterLoading, roll]);
 
   useEffect(() => {
     if (!autoMode) return undefined;
@@ -541,6 +553,13 @@ export default function DApp() {
         keysPerRoll={keysPerRoll}
         verbose={verbose}
         onVerbose={setVerbose}
+        filter={filter}
+        filterError={filterError}
+        screening={screening}
+        onScreening={setScreening}
+        importing={filterImporting}
+        onImportFilter={importFilter}
+        onClearFilter={clearFilter}
         onClose={() => setStatsOpen(false)}
       />
 

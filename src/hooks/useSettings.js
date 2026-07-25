@@ -55,10 +55,32 @@ export function useSettings() {
     writeString(STORAGE_KEYS.keysPerRoll, String(safe));
   }, []);
 
+  // On whenever a filter is present. Someone who has gone to the trouble of
+  // building one did not do it to leave it switched off; turning it off is for
+  // reading every address against the chain deliberately.
+  const [screening, setScreeningState] = useState(
+    () => readString(STORAGE_KEYS.screening, '') !== 'off',
+  );
+
+  const setScreening = useCallback((next) => {
+    setScreeningState(next);
+    writeString(STORAGE_KEYS.screening, next ? 'on' : 'off');
+  }, []);
+
   const setVerbose = useCallback((next) => {
     setVerboseState(next);
     writeString(STORAGE_KEYS.verbose, next ? 'on' : 'off');
   }, []);
 
-  return { chains, setChains, toggleChain, keysPerRoll, setKeysPerRoll, verbose, setVerbose };
+  return {
+    chains,
+    setChains,
+    toggleChain,
+    keysPerRoll,
+    setKeysPerRoll,
+    verbose,
+    setVerbose,
+    screening,
+    setScreening,
+  };
 }

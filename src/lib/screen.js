@@ -3,10 +3,13 @@ import { parseFilter } from './bloom';
 /**
  * Where a filter is expected to sit, relative to wherever the app is served.
  *
- * The data is not in the repository for the same reason the API key is not:
- * it is large, it goes stale, and which addresses are worth screening against
- * is the reader's call. `npm run build-filter` makes one; a self-hosted
- * deployment can drop it in `public/` and ship it.
+ * One ships in `public/`, so an ordinary deployment screens from the first roll
+ * and needs no Etherscan key to do it. That is the whole reason it is tracked:
+ * without a filter every address goes to the chain, and a visitor who has not
+ * brought a key of their own cannot roll at all.
+ *
+ * It goes stale as balances move. `npm run build-filter` makes a fresh one, and
+ * a reader who imports their own overrides it either way.
  */
 const FILTER_URL = 'funded.bin';
 

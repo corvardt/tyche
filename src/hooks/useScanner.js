@@ -6,6 +6,7 @@ import { callsPerRoll, fetchBalances } from '../lib/etherscan';
 import { readHits } from '../lib/hits';
 import { fetchEthPrice } from '../lib/price';
 import { readNumber, writeJSON, writeString } from '../lib/storage';
+import { emit } from '../lib/telemetry';
 
 /**
  * Owns one roll: generate a batch, price it, look up balances, publish results.
@@ -46,6 +47,9 @@ export function useScanner({ testMode, onHit, chains, keysPerRoll = KEYS_PER_ROL
   const inFlight = useRef(false);
   const mounted = useRef(true);
   const onHitRef = useRef(onHit);
+
+  /** Counts rolls for the telemetry line, so its traffic can be followed. */
+  const rollNumber = useRef(0);
 
   // `halted` is mirrored into a ref because the guard inside `roll` has to read
   // it synchronously. Resuming sets state and then rolls in the same tick, and a
@@ -95,12 +99,20 @@ export function useScanner({ testMode, onHit, chains, keysPerRoll = KEYS_PER_ROL
         .map(({ chainId, amount }) => `${amount} on ${chainName(chainId)}`)
         .join(', ');
       console.warn(`${account.privateKey} has ${where}`);
+      emit('found', `${account.address} · ${where}`);
     }
     onHitRef.current?.(funded);
   }, []);
 
   const roll = useCallback(async () => {
-    if (inFlight.current || haltedRef.current) return;
+    if (inFlight.current) {
+      emit('skip', 'roll already in flight');
+      return;
+    }
+    if (haltedRef.current) {
+      emit('skip', 'holding on a find');
+      return;
+    }
     inFlight.current = true;
 
     const controller = new AbortController();
@@ -111,7 +123,15 @@ export function useScanner({ testMode, onHit, chains, keysPerRoll = KEYS_PER_ROL
     setError(null);
     setProgress(10);
 
+    rollNumber.current += 1;
+    emit(
+      'roll',
+      `#${rollNumber.current} · ${keysPerRoll} keys · ${(chains ?? []).length || 1} chain(s)${testMode ? ' · test' : ''}`,
+    );
+
+    const generatedAt = Date.now();
     const batch = generateAccounts({ testMode, count: keysPerRoll });
+    emit('gen', `${batch.length} keypairs · ${Date.now() - generatedAt}ms`);
 
     // Keep the last completed set on screen while the new one resolves, rather
     // than flashing an empty grid.
@@ -163,6 +183,11 @@ export function useScanner({ testMode, onHit, chains, keysPerRoll = KEYS_PER_ROL
       }));
 
       const funded = scanned.filter(isFunded);
+      emit(
+        'done',
+        `#${rollNumber.current} · ${batch.length} checked · ${funded.length} funded · ${Date.now() - started}ms · ${callsPerRoll(batch.length, chains ?? [])} calls`,
+      );
+
       if (funded.length > 0) {
         halt(true);
         recordHits(funded);
@@ -170,12 +195,16 @@ export function useScanner({ testMode, onHit, chains, keysPerRoll = KEYS_PER_ROL
     } catch (cause) {
       if (!mounted.current) return;
       // A roll we cancelled ourselves is not a failure to report.
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        emit('abort', `#${rollNumber.current} cancelled`);
+        return;
+      }
 
       // Surfacing this is the whole point: a failed lookup used to leave the app
       // spinning on a disabled button with nothing on screen to explain why.
       setError(cause.message ?? 'Balance lookup failed');
       setConsecutiveErrors((count) => count + 1);
+      emit('error', cause.message ?? 'Balance lookup failed');
       // Key generation does not depend on Etherscan, so the batch stays on screen
       // with unknown balances. Dropping it here (back to an empty
       // `previousAccounts` on the first roll) left the app permanently blank
@@ -204,13 +233,17 @@ export function useScanner({ testMode, onHit, chains, keysPerRoll = KEYS_PER_ROL
 
   // Abandoning a roll rather than waiting it out. The controller was already
   // here for unmount; a reader stuck behind a slow lookup can use it too.
-  const cancel = useCallback(() => abortRef.current?.abort(), []);
+  const cancel = useCallback(() => {
+    emit('stop', 'cancel requested');
+    abortRef.current?.abort();
+  }, []);
 
   // Acknowledging a find. Clearing `halted` on its own would leave the hit
   // banner on screen over a sheet nobody had asked to keep, so resuming is the
   // same gesture as rolling again: the batch that stopped the machine is
   // replaced by the one that follows it.
   const resumeAfterHit = useCallback(() => {
+    emit('resume', 'hold cleared');
     halt(false);
     rollRef.current();
   }, [halt]);

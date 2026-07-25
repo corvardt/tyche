@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { KEYS_PER_ROLL, KEYS_PER_ROLL_OPTIONS, STORAGE_KEYS } from '../config';
 import { CHAINS, DEFAULT_CHAIN_ID } from '../lib/chains';
-import { readJSON, readNumber, writeJSON, writeString } from '../lib/storage';
+import { readJSON, readNumber, readString, writeJSON, writeString } from '../lib/storage';
 
 const KNOWN = new Set(CHAINS.map((chain) => chain.id));
 
@@ -29,6 +29,11 @@ function loadKeysPerRoll() {
 export function useSettings() {
   const [chains, setChainsState] = useState(loadChains);
   const [keysPerRoll, setKeysPerRollState] = useState(loadKeysPerRoll);
+  // Off by default: the status line is for when you want to watch the machine
+  // work, not something to explain to someone who just opened the page.
+  const [verbose, setVerboseState] = useState(
+    () => readString(STORAGE_KEYS.verbose, '') === 'on',
+  );
 
   const setChains = useCallback((next) => {
     const cleaned = next.filter((id) => KNOWN.has(id));
@@ -49,5 +54,10 @@ export function useSettings() {
     writeString(STORAGE_KEYS.keysPerRoll, String(safe));
   }, []);
 
-  return { chains, setChains, toggleChain, keysPerRoll, setKeysPerRoll };
+  const setVerbose = useCallback((next) => {
+    setVerboseState(next);
+    writeString(STORAGE_KEYS.verbose, next ? 'on' : 'off');
+  }, []);
+
+  return { chains, setChains, toggleChain, keysPerRoll, setKeysPerRoll, verbose, setVerbose };
 }

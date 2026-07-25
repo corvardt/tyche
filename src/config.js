@@ -45,4 +45,5 @@ export const STORAGE_KEYS = {
   ethPrice: 'EthPrice',
   chains: 'chains',
   keysPerRoll: 'keysPerRoll',
+  verbose: 'verbose',
 };

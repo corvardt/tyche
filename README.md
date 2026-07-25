@@ -30,7 +30,8 @@ load; see below. Nothing else is configured, and there is no `.env` to fill in.
 | **List** | The same batch as a log: channel number, address, private key, balance. The address links to Etherscan |
 | **Keep** | Kept keys go to `localStorage` and open from `kept` in the header. Export writes them as address/key pairs; import reads them back, or any text with private keys in it, since a key determines its own address |
 | **Chains** | Which chains a roll is read against, and what that costs. Ethereum only unless you say otherwise. Read the cost panel before adding any |
-| **Stats** | Rate, session, the fraction of the keyspace covered, and what the day's API allowance has left |
+| **Stats** | Rate, session, the fraction of the keyspace covered, and what the day's API allowance has left. Also where the status line is switched on |
+| **Status** | Off by default. A line along the bottom edge naming everything as it happens, one entry at a time |
 | **Test** | Plants a known funded address (a Binance hot wallet) in the batch, so the found-one path can be exercised without waiting for a 1-in-2^160 event |
 | **Keys** | `x` roll · `a` auto · `v` sheet/list · `k` api key · `f` kept keys · `c` chains · `s` stats · `t` tube/paper |
 
@@ -64,6 +65,33 @@ every address and private key is shown; only the balances are unavailable,
 which the header reports and the error line reopens the panel to fix.
 `VITE_ETHERSCAN_API_KEY` remains as a build-time fallback for a self-hosted
 deployment that wants one; see `.env.example` for why you probably do not.
+
+## The status line
+
+`verbose status line` under `stats` puts a line along the bottom edge naming
+everything the instrument does as it does it: each roll, the keys as they are
+generated, every call and the chain it went to, every wait the rate limiter
+imposed, every find. One roll of forty against two chains reads:
+
+```
+20:14:03.118 00012 ROLL     #2 · 40 keys · 2 chain(s)
+20:14:03.229 00013 GEN      40 keypairs · 15ms
+20:14:03.340 00014 LOOKUP   Ethereum · batch 1/2 · 20 addrs
+20:14:03.451 00015 LOOKUP   Ethereum · batch 2/2 · 20 addrs
+20:14:03.562 00016 THROTTLE held 361ms · 3/s cap
+20:14:03.673 00017 LOOKUP   Polygon · batch 1/2 · 20 addrs
+...
+20:14:04.237 00021 DONE     #2 · 40 checked · 0 funded · 1119ms · 4 calls
+```
+
+Events are published to a bus and the line subscribes to it directly, so an
+entry arriving re-renders one line rather than the page. They are paced at one
+every 110ms — a roll emits its start, its generation timing and its first lookup
+inside about fifteen milliseconds, and anything rendering them as they arrive
+gets coalesced into a single paint, so the entries in between are shown to
+nobody. If the machine ever outruns the line the backlog is dropped from the
+front rather than allowed to lag; in practice the rate limiter holds calls below
+the speed the line can display, so it keeps up.
 
 ## Chains, and what they cost
 
@@ -112,6 +140,8 @@ people look for first.
 | `src/lib/chains.js` | The chains a roll can read, which of them a free key can reach, and where to link each one |
 | `src/lib/cost.js` | What a setting costs to run, and the arithmetic behind the chain panel's warning |
 | `src/lib/limiter.js` | Spaces every outgoing call so no combination of chains and batch size outruns the plan |
+| `src/lib/telemetry.js` | The commentary bus. Everything publishes here; the status line is the only subscriber |
+| `src/components/StatusLine.jsx` | That commentary, one line, bottom edge |
 | `src/lib/theme.js` | Medium selection, stored domain-wide as a cookie on `.unmod.fun` |
 | `src/components/BlockieSheet.jsx` | The contact sheet |
 | `src/components/AddressTable.jsx` | The same batch as a log |

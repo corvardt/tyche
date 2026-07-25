@@ -10,6 +10,7 @@ import { chainById, DEFAULT_CHAIN_ID } from './lib/chains';
 import { downloadAccounts, parseAccounts } from './lib/download';
 import { hasApiKey } from './lib/etherscan';
 import { formatCount, formatEth, formatUsd } from './lib/format';
+import { emit } from './lib/telemetry';
 import { useTheme } from './lib/theme';
 
 import { useContextMenu } from './hooks/useContextMenu';
@@ -29,6 +30,7 @@ import Header from './components/Header';
 import LoadingBar from './components/LoadingBar';
 import Snackbar from './components/Snackbar';
 import StatsPanel from './components/StatsPanel';
+import StatusLine from './components/StatusLine';
 import { CONTROL, CONTROL_ON, Readout, Rule } from './components/controls';
 
 export default function DApp() {
@@ -49,7 +51,8 @@ export default function DApp() {
   const [apiKeyOpen, setApiKeyOpen] = useState(() => !hasApiKey());
 
   const snackbar = useSnackbar();
-  const { chains, toggleChain, keysPerRoll, setKeysPerRoll } = useSettings();
+  const { chains, toggleChain, keysPerRoll, setKeysPerRoll, verbose, setVerbose } =
+    useSettings();
   const {
     favorites,
     add: addFavorite,
@@ -102,6 +105,7 @@ export default function DApp() {
   useEffect(() => {
     if (!autoMode || consecutiveErrors < AUTO_STOP_AFTER_ERRORS) return;
     setAutoMode(false);
+    emit('auto', `off · ${AUTO_STOP_AFTER_ERRORS} failed rolls`);
     snackbar.show('Auto stopped: no signal');
   }, [autoMode, consecutiveErrors, snackbar.show]);
 
@@ -182,6 +186,7 @@ export default function DApp() {
   const toggleAutoMode = () => {
     const next = !autoMode;
     setAutoMode(next);
+    emit('auto', next ? `on · every ${AUTO_ROLL_INTERVAL_MS / 1000}s` : 'off');
 
     if (!next && autosave && autosaveBuffer.length > 0) {
       downloadAccounts(autosaveBuffer, 'autosave-data');
@@ -191,6 +196,7 @@ export default function DApp() {
 
   const handleAddFavorite = (account) => {
     const added = addFavorite(account);
+    emit('keep', `${account.address} · ${added ? 'kept' : 'already kept'}`);
     snackbar.show(added ? 'Kept' : 'Already kept');
   };
 
@@ -207,6 +213,7 @@ export default function DApp() {
     }
 
     const added = addFavorites(parsed);
+    emit('import', `${parsed.length} keys read · ${added} new`);
     snackbar.show(
       added === 0
         ? 'All already kept'
@@ -220,6 +227,7 @@ export default function DApp() {
   const handleApiKeySaved = (saved) => {
     setApiKeySet(saved);
     setApiKeyOpen(false);
+    emit('key', saved ? 'saved and verified' : 'cleared');
     snackbar.show(saved ? 'Key saved' : 'Key cleared');
     // Retry the batch that's already on screen with unknown balances.
     if (saved) roll();
@@ -477,6 +485,8 @@ export default function DApp() {
           The counters that outlive a batch, and the keys that drive it. The
           shortcuts live here permanently instead of behind a `window.alert`
           that hid itself after a thousand keys. */}
+      {verbose && <StatusLine />}
+
       <footer className="flex h-10 shrink-0 items-center justify-between gap-4 border-t border-line px-3 sm:px-4">
         <div className="flex items-baseline gap-x-5 gap-y-1 overflow-hidden">
           <Readout label="checked" value={formatCount(keysChecked)} />
@@ -529,6 +539,8 @@ export default function DApp() {
         session={session}
         chains={chains}
         keysPerRoll={keysPerRoll}
+        verbose={verbose}
+        onVerbose={setVerbose}
         onClose={() => setStatsOpen(false)}
       />
 

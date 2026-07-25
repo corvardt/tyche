@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { formatEther } from 'ethers';
 import { ETHERSCAN_BATCH_SIZE, STORAGE_KEYS } from '../config';
-import { DEFAULT_CHAIN_ID } from './chains';
+import { chainName, DEFAULT_CHAIN_ID } from './chains';
 import { schedule } from './limiter';
 import { readString, writeString } from './storage';
+import { emit } from './telemetry';
 
 const API_URL = 'https://api.etherscan.io/v2/api';
 
@@ -144,7 +145,12 @@ export async function fetchBalances(addresses, { chains, signal, onBatch } = {})
   let completed = 0;
 
   for (const chainId of chainIds) {
-    for (const batch of batches) {
+    for (const [index, batch] of batches.entries()) {
+      emit(
+        'lookup',
+        `${chainName(chainId)} · batch ${index + 1}/${batches.length} · ${batch.length} addrs`,
+      );
+
       const result = await request(
         { module: 'account', action: 'balancemulti', address: batch.join(','), tag: 'latest' },
         { signal, apiKey, chainId },

@@ -4,6 +4,7 @@ import { fetchApiUsage } from '../lib/etherscan';
 import { formatCount } from '../lib/format';
 import { readHits } from '../lib/hits';
 import Panel, { Group } from './Panel.jsx';
+import { CONTROL, CONTROL_ON } from './controls.jsx';
 
 const Row = ({ label, value, hot = false, title }) => (
   <>
@@ -30,7 +31,16 @@ const duration = (ms) => {
  * covered-fraction figure is the point of the panel: it has forty-odd leading
  * zeros, and running the machine all week does not move a digit of it.
  */
-export default function StatsPanel({ open, onClose, keysChecked, session, chains, keysPerRoll }) {
+export default function StatsPanel({
+  open,
+  onClose,
+  keysChecked,
+  session,
+  chains,
+  keysPerRoll,
+  verbose,
+  onVerbose,
+}) {
   const [usage, setUsage] = useState(null);
   const [now, setNow] = useState(Date.now());
   // Read on open rather than held in state: a find halts the machine, so this
@@ -64,6 +74,28 @@ export default function StatsPanel({ open, onClose, keysChecked, session, chains
 
   return (
     <Panel title="Statistics" width={480} onClose={onClose}>
+      {/* The instrument's own commentary. It lives with the statistics because
+          it is the same thing at a different resolution: this panel is what the
+          machine has done, the line is what it is doing. */}
+      <Group title="Readout">
+        <div className="mt-1 flex items-baseline justify-between gap-4">
+          <button
+            type="button"
+            aria-pressed={verbose}
+            onClick={() => onVerbose(!verbose)}
+            className={`flex items-baseline gap-2 ${verbose ? CONTROL_ON : CONTROL}`}
+          >
+            <span>{verbose ? '[x]' : '[ ]'}</span>
+            <span>verbose status line</span>
+          </button>
+        </div>
+        <p className="mt-2 max-w-[46ch] text-xs leading-5 text-dim">
+          A line along the bottom edge naming everything as it happens: each roll, the keys as they
+          are generated, every call and the chain it went to, every wait the rate limiter imposed,
+          and every find.
+        </p>
+      </Group>
+
       <Group title="This session">
         <dl className="mt-1 grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
           <Row label="running for" value={duration(elapsedMs)} />

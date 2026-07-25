@@ -1,4 +1,5 @@
 import { ETHERSCAN_CALLS_PER_SECOND } from '../config';
+import { emit } from './telemetry';
 
 /**
  * Spaces outgoing Etherscan calls so a roll cannot outrun the plan.
@@ -38,7 +39,13 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 export function schedule(task) {
   const run = tail.then(async () => {
     const since = Date.now() - lastStart;
-    if (since < MIN_INTERVAL_MS) await wait(MIN_INTERVAL_MS - since);
+    if (since < MIN_INTERVAL_MS) {
+      const held = Math.round(MIN_INTERVAL_MS - since);
+      // Worth saying out loud: this is the only reason auto can run slower
+      // than the two seconds it advertises, and it is otherwise invisible.
+      emit('throttle', `held ${held}ms · ${ETHERSCAN_CALLS_PER_SECOND}/s cap`);
+      await wait(held);
+    }
     lastStart = Date.now();
   });
 

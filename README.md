@@ -226,7 +226,7 @@ people look for first.
 | `scripts/build-filter.mjs` | Builds a filter from an address list, ahead of time |
 | `src/lib/telemetry.js` | The commentary bus. Everything publishes here; the status line is the only subscriber |
 | `src/components/StatusLine.jsx` | That commentary, one line, bottom edge |
-| `src/lib/theme.js` | Medium selection, stored domain-wide as a cookie on `.unmod.fun` |
+| `src/lib/theme.js` | Medium selection, stored domain-wide as a cookie on `.corvardt.com` |
 | `src/components/BlockieSheet.jsx` | The contact sheet |
 | `src/components/AddressTable.jsx` | The same batch as a log |
 | `src/components/Panel.jsx` | Modal shell shared by the key panel and the kept sheet: backdrop, focus trap, `esc`, corner ticks |

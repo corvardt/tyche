@@ -6,15 +6,15 @@ import { useCallback, useEffect, useState } from 'react';
  */
 export const TOKENS = ['void', 'panel', 'line', 'land', 'dim', 'text', 'strike'];
 
-// The medium is shared with the rest of unmod.fun, so the choice lives in a
+// The medium is shared with the rest of corvardt.com, so the choice lives in a
 // cookie scoped to the domain rather than in localStorage, which is per-origin
 // and would not survive the walk between the index and a project.
-const COOKIE_KEY = 'unmod-theme';
+const COOKIE_KEY = 'corvardt-theme';
 
-const stored = () => document.cookie.match(/(?:^|;\s*)unmod-theme=(dark|light)/)?.[1] ?? null;
+const stored = () => document.cookie.match(/(?:^|;\s*)corvardt-theme=(dark|light)/)?.[1] ?? null;
 
 function write(theme) {
-  const domain = location.hostname.endsWith('unmod.fun') ? '; domain=.unmod.fun' : '';
+  const domain = location.hostname.endsWith('corvardt.com') ? '; domain=.corvardt.com' : '';
   document.cookie = `${COOKIE_KEY}=${theme}; path=/; max-age=31536000; samesite=lax${domain}`;
 }
 

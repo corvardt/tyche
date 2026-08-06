@@ -29,10 +29,10 @@
     />
     <script>
       // Resolve the medium before first paint so the tube never flashes on
-      // paper. The cookie is written on `.unmod.fun`, so a choice made on the
+      // paper. The cookie is written on `.corvardt.com`, so a choice made on the
       // index or on any other project carries here and back again.
       (function () {
-        var m = document.cookie.match(/(?:^|;\s*)unmod-theme=(dark|light)/);
+        var m = document.cookie.match(/(?:^|;\s*)corvardt-theme=(dark|light)/);
         var t = m ? m[1] : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
         document.documentElement.dataset.theme = t;
       })();

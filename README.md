@@ -35,7 +35,7 @@ load; see below. Nothing else is configured, and there is no `.env` to fill in.
 | **Screen** | Load a list of addresses worth finding and the chain is only asked about the ones that match. Two orders of magnitude more keys a day, and no API key needed for the misses |
 | **Status** | A line along the bottom edge naming everything as it happens, one entry at a time. On unless you turn it off under `stats` |
 | **Test** | Plants a known funded address (a Binance hot wallet) in the batch, so the found-one path can be exercised without waiting for a 1-in-2^160 event |
-| **Keys** | `x` roll · `a` auto · `v` sheet/list · `k` api key · `f` kept keys · `c` chains · `s` stats · `t` tube/paper |
+| **Keys** | `x` roll · `a` auto · `v` sheet/list · `k` api key · `f` kept keys · `c` chains · `s` stats · `t` dark/light |
 
 ### When something is found
 

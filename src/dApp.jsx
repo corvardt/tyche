@@ -582,7 +582,7 @@ export default function DApp() {
           <kbd className="hidden font-mono sm:inline">v view</kbd>
           <kbd className="hidden font-mono md:inline">s stats</kbd>
           <kbd className="hidden font-mono md:inline">c chains</kbd>
-          <kbd className="hidden font-mono lg:inline">t tube</kbd>
+          <kbd className="hidden font-mono lg:inline">t theme</kbd>
         </div>
       </footer>
 

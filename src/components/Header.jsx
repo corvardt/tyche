@@ -64,14 +64,14 @@ function Header({
         </span>
 
         <span className="flex items-center gap-3 border-l border-line pl-3 sm:pl-4">
-          {/* Two media, named for what they are rather than "light"/"dark". */}
+          {/* Two media, named for the medium the control switches to. */}
           <button
             type="button"
             onClick={() => onTheme(theme === 'dark' ? 'light' : 'dark')}
-            aria-label={`Switch to ${theme === 'dark' ? 'paper' : 'tube'}`}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'}`}
             className={CONTROL}
           >
-            {theme === 'dark' ? 'tube' : 'paper'}
+            {theme}
           </button>
           <Rule />
           <button type="button" onClick={onKeys} className={CONTROL}>

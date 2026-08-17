@@ -62,7 +62,7 @@
 }
 
 @layer base {
-  /* ── Tube ────────────────────────────────────────────────────────────────
+  /* ── Dark ────────────────────────────────────────────────────────────────
      Light emitted on black. White is reserved: nothing in this interface
      reaches it except an address that actually holds ether. */
   :root,
@@ -86,7 +86,7 @@
     --bloom-hot: rgba(255, 255, 255, 0.3);
   }
 
-  /* ── Paper ───────────────────────────────────────────────────────────────
+  /* ── Light ───────────────────────────────────────────────────────────────
      The other readout: ink on a chart recorder's roll. A tube cannot be
      inverted, so light mode changes medium instead. Black takes over the
      reserved role; cool neutral stock, never cream. */

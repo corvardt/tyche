@@ -30,6 +30,7 @@ load; see below. Nothing else is configured, and there is no `.env` to fill in.
 | **Auto** | Rolls continuously until stopped, or until something is found. Each roll starts as the last one ends, so what sets the pace is whatever is actually slowest: the rate limiter when the chain is being read, key generation when the screen has spared it. `rec` alongside it buffers every batch (every roll, not every roll the sheet had time to draw) and writes one file whenever auto stops, including when a find is what stopped it. Recording holds 200,000 keys before it stops taking more, which a screened run reaches in about a minute |
 | **Sheet** | The batch as a contact sheet of identicons. Right-click any cell for its actions; the colour is derived from the address, so it is the fastest way to tell forty of them apart |
 | **List** | The same batch as a log: channel number, address, private key, balance. The address links to Etherscan |
+| **Back** | `‹` steps back through the last hundred batches that reached the sheet, `›` forward, and forward past the newest returns to live. Under auto a sheet is gone in four hundred milliseconds, so this is the only way to look at one again. The arrow keys do the same. Rolling carries on behind a held batch, and a find brings the sheet back to live on its own |
 | **Keep** | Kept keys go to `localStorage` and open from `kept` in the header. Export writes them as address/key pairs; import reads them back, or any text with private keys in it, since a key determines its own address |
 | **Chains** | Which chains a roll is read against, and what that costs. Ethereum only unless you say otherwise. Read the cost panel before adding any |
 | **Cfg** | Everything the reader sets, in one panel: the medium and the tube, the API key, the screen, the status line. `stats` reports, `cfg` decides |
@@ -38,7 +39,7 @@ load; see below. Nothing else is configured, and there is no `.env` to fill in.
 | **Status** | A line along the bottom edge naming everything as it happens, one entry at a time. On unless you turn it off under `cfg` |
 | **Test** | Plants a known funded address (a Binance hot wallet) in the batch, so the found-one path can be exercised without waiting for a 1-in-2^160 event |
 | **Tube** | Dark or light, and on dark which phosphor the tube is coated with: `white`, or one of three palettes carried over from Keraunos. Top of `cfg` |
-| **Keys** | `x` roll · `a` auto · `v` sheet/list · `k` cfg · `f` kept keys · `c` chains · `s` stats · `t` dark/light |
+| **Keys** | `x` roll · `a` auto · `v` sheet/list · `←` `→` history · `k` cfg · `f` kept keys · `c` chains · `s` stats · `t` dark/light |
 
 ### When something is found
 

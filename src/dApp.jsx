@@ -13,6 +13,7 @@ import { useTubeSwitch } from './hooks/useTubeSwitch';
 import { useContextMenu } from './hooks/useContextMenu';
 import { useFavorites } from './hooks/useFavorites';
 import { useFilter } from './hooks/useFilter';
+import { useRollHistory } from './hooks/useRollHistory';
 import { useScanner } from './hooks/useScanner';
 import { useSettings } from './hooks/useSettings';
 import { useSnackbar } from './hooks/useSnackbar';
@@ -107,6 +108,11 @@ export default function DApp() {
     [autoMode, autosave, snackbar],
   );
 
+  // The last hundred batches that made it to the sheet, so one can be gone back
+  // to. Under auto they go past faster than anything can be read; this is what
+  // makes a batch recoverable after it has been rolled over.
+  const history = useRollHistory();
+
   const {
     accounts,
     previousAccounts,
@@ -124,7 +130,15 @@ export default function DApp() {
     cancel,
     resumeAfterHit,
     roll,
-  } = useScanner({ testMode, onHit, onRoll, chains, keysPerRoll, filter: screening ? filter : null });
+  } = useScanner({
+    testMode,
+    onHit,
+    onRoll,
+    onSheet: history.push,
+    chains,
+    keysPerRoll,
+    filter: screening ? filter : null,
+  });
 
   const listMenu = useContextMenu('.img3');
   const favMenu = useContextMenu('.img2');
@@ -171,6 +185,15 @@ export default function DApp() {
     snackbar.show('Auto stopped: no signal');
   }, [autoMode, consecutiveErrors, snackbar]);
 
+  // A find lands on the live sheet, and the reader may be forty batches back
+  // when it does: without this the machine halts, the banner is drawn from the
+  // held batch that has no hit in it, and the one event this exists for is
+  // behind two arrow presses nobody knows to make.
+  const { back, forward, live } = history;
+  useEffect(() => {
+    if (halted) live();
+  }, [halted, live]);
+
   const anyPanelOpen = configOpen || favoritesOpen || chainsOpen || statsOpen;
 
   // Single keys, no modifiers: the whole instrument is reachable without ever
@@ -189,6 +212,11 @@ export default function DApp() {
       if (key === 't') setTheme(theme === 'dark' ? 'light' : 'dark');
       if (anyPanelOpen) return;
 
+      // The arrows are the same lever as the two controls in the row: this is
+      // the one gesture in here everybody already knows.
+      if (event.key === 'ArrowLeft') back();
+      if (event.key === 'ArrowRight') forward();
+
       if (key === 'x') roll();
       if (key === 'a') setAutoMode((on) => !on);
       if (key === 'v') setView((current) => (current === 'sheet' ? 'list' : 'sheet'));
@@ -200,7 +228,7 @@ export default function DApp() {
 
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [anyPanelOpen, roll, setTheme, theme]);
+  }, [anyPanelOpen, back, forward, roll, setTheme, theme]);
 
   // The batch being rolled is what is on screen, developing as it is read. It
   // used to be the *previous* batch until the new one had fully resolved, on
@@ -209,15 +237,24 @@ export default function DApp() {
   // While a roll is running the sheet is the batch being made, however little
   // of it exists yet; the empty remainder is drawn as slots. Only at rest does
   // the previous batch stand in, for the moment before the first roll lands.
-  const visible = scanning || accounts.length > 0 ? accounts : previousAccounts;
-  const slots = scanning ? keysPerRoll : 0;
+  // A batch held out of the history stands in front of all of that: rolling
+  // carries on behind it, and going forward to live hands the sheet back.
+  const held = history.viewing;
+  const visible = held ?? (scanning || accounts.length > 0 ? accounts : previousAccounts);
+  const slots = !held && scanning ? keysPerRoll : 0;
+  // Only fully read batches reach the history, so a held one is developed
+  // throughout rather than partway through a lookup that finished long ago.
+  const developed = held ? held.length : resolved;
 
   // The one state the contact sheet cannot describe: auto, screened, thousands
   // a second, nothing surviving. Everywhere else a batch is something you can
   // actually look at, so everywhere else keeps its blockies. A find drops out
   // of this on its own: it switches auto off, and the sheet comes back holding
   // the batch that stopped the machine.
-  const streaming = autoMode && screening && Boolean(filter) && !halted;
+  // Suspended while a held batch is up: the field is what auto looks like when
+  // there is nothing to look at, and going back is asking for something to look
+  // at. The roll it reports carries on regardless.
+  const streaming = autoMode && screening && Boolean(filter) && !halted && !held;
 
   // A roll starts and finishes about eighty times a second under the field, so
   // anything wired straight to `scanning` flickers at eighty hertz. `[ roll ]`
@@ -463,6 +500,39 @@ export default function DApp() {
 
               <Rule />
 
+              {/* ── The history ──────────────────────────────────────────
+                  Back through the batches that have been drawn, forward to
+                  come out at the live one again. Under auto a sheet is gone
+                  in four hundred milliseconds, and until now that was the
+                  end of it. */}
+              <span className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={back}
+                  disabled={!history.canBack}
+                  title="Back to the batch before this one"
+                  className={held ? CONTROL_ON : CONTROL}
+                >
+                  [ ‹ ]
+                </button>
+                <button
+                  type="button"
+                  onClick={forward}
+                  disabled={!history.canForward}
+                  title="Forward, and at the end of it back to live"
+                  className={CONTROL}
+                >
+                  [ › ]
+                </button>
+                {/* Says how far back, because nothing else on the page does:
+                    one sheet of forty looks exactly like another. */}
+                <span className="w-14 text-2xs uppercase tracking-label text-dim">
+                  {held ? `−${history.offset} / ${history.depth - 1}` : 'live'}
+                </span>
+              </span>
+
+              <Rule />
+
               {/* Every size is a whole number of API calls per chain. */}
               <span className="hidden items-center gap-2 md:flex">
                 {KEYS_PER_ROLL_OPTIONS.map((option) => (
@@ -566,7 +636,7 @@ export default function DApp() {
                     ) : (
                       <BlockieSheet
                         accounts={visible}
-                        resolved={resolved}
+                        resolved={developed}
                         slots={slots}
                         dimMissed={halted}
                         hitClass="img3"
@@ -583,7 +653,7 @@ export default function DApp() {
               <div className="arrive">
                 <AddressTable
                 accounts={visible}
-                resolved={resolved}
+                resolved={developed}
                 onSelect={listMenu.open}
                 hitClass="img3"
               />
@@ -613,6 +683,7 @@ export default function DApp() {
           <kbd className="font-mono">x roll</kbd>
           <kbd className="hidden font-mono sm:inline">a auto</kbd>
           <kbd className="hidden font-mono sm:inline">v view</kbd>
+          <kbd className="hidden font-mono sm:inline">← → history</kbd>
           <kbd className="hidden font-mono md:inline">s stats</kbd>
           <kbd className="hidden font-mono md:inline">c chains</kbd>
           <kbd className="hidden font-mono lg:inline">t theme</kbd>

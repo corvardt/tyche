@@ -20,6 +20,7 @@ export function useScanner({
   testMode,
   onHit,
   onRoll,
+  onSheet,
   chains,
   keysPerRoll = KEYS_PER_ROLL,
   filter = null,
@@ -76,6 +77,7 @@ export function useScanner({
   const mounted = useRef(true);
   const onHitRef = useRef(onHit);
   const onRollRef = useRef(onRoll);
+  const onSheetRef = useRef(onSheet);
 
   /** Counts rolls for the telemetry line, so its traffic can be followed. */
   const rollNumber = useRef(0);
@@ -98,6 +100,7 @@ export function useScanner({
   useEffect(() => {
     onHitRef.current = onHit;
     onRollRef.current = onRoll;
+    onSheetRef.current = onSheet;
   });
 
   // `fetchBalances` and `fetchEthPrice` have both taken a `signal` from the
@@ -262,6 +265,10 @@ export function useScanner({
         setAccounts(scanned);
         setPreviousAccounts(scanned);
         setResolved(batch.length);
+        // Only what was drawn goes to the history: those are the batches the
+        // sheet was paced to show, and so the ones worth being able to
+        // return to. `onRoll` below takes every batch, drawn or not.
+        onSheetRef.current?.(scanned);
       }
 
       // Every batch that finished, drawn or not. `rec` used to accumulate from
@@ -320,6 +327,8 @@ export function useScanner({
       // whenever the API key was missing or the request failed.
       setAccounts(batch);
       setPreviousAccounts(batch);
+      // Deliberately not pushed to the history: the batch is on screen but its
+      // balances never arrived, and a held batch is drawn as fully read.
       setProgress(0);
     } finally {
       inFlight.current = false;

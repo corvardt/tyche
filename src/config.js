@@ -39,6 +39,16 @@ export const ETHERSCAN_CALLS_PER_DAY = 100_000;
 export const SHEET_MIN_MS = 400;
 
 /**
+ * How many drawn batches can be gone back to.
+ *
+ * Only the batches that reached the sheet are held: those are the ones paced by
+ * `SHEET_MIN_MS`, and so the ones anyone had a chance to look at. A hundred of
+ * them is forty seconds of auto at that pace, and at the largest roll size a few
+ * megabytes of keys, which is nothing next to what `rec` is allowed to hold.
+ */
+export const HISTORY_DEPTH = 100;
+
+/**
  * Consecutive failed rolls before auto mode switches itself off. A wrong key or
  * an exhausted rate limit fails every roll, and auto answered that by asking
  * again every two seconds indefinitely, which, for a rate limit, is the one

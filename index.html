@@ -35,6 +35,19 @@
         var m = document.cookie.match(/(?:^|;\s*)corvardt-theme=(dark|light)/);
         var t = m ? m[1] : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
         document.documentElement.dataset.theme = t;
+
+        // The coating, for the same reason and one step further: it is this
+        // instrument's alone, so it is in localStorage rather than the shared
+        // cookie, and reading it here is what stops a chosen tube from
+        // flashing grey on every load.
+        try {
+          var p = localStorage.getItem('palette');
+          if (/^(white|oil|crimson|demon)$/.test(p || '')) {
+            document.documentElement.dataset.palette = p;
+          }
+        } catch (e) {
+          // Storage disabled; the grey tube is the right fallback.
+        }
       })();
     </script>
   </head>

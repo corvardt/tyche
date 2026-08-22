@@ -27,7 +27,7 @@ function Header({
   error,
   theme,
   onTheme,
-  onKeys,
+  onConfig,
   onFavorites,
   onChains,
   onStats,
@@ -74,8 +74,8 @@ function Header({
             {theme}
           </button>
           <Rule />
-          <button type="button" onClick={onKeys} className={CONTROL}>
-            api
+          <button type="button" onClick={onConfig} className={CONTROL}>
+            cfg
           </button>
           <button type="button" onClick={onChains} className={`${CONTROL} hidden sm:inline`}>
             chains{chainCount > 1 ? ` ${chainCount}` : ''}

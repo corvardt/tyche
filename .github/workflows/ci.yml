@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Node the lockfile was written by, read from the same file the
+      # local install reads, so the two cannot drift apart.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      # The build is a check in its own right: everything here is a static
+      # bundle, and a bundle that will not build is the only failure that
+      # actually takes the site down.
+      - run: npm run build

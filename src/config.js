@@ -50,6 +50,18 @@ export const AUTO_STOP_AFTER_ERRORS = 3;
 export const PRICE_MAX_AGE_MS = 60_000;
 
 /**
+ * Ceiling on what `rec` holds before it stops taking more.
+ *
+ * Recording follows the roll now rather than the sheet, and a screened roll
+ * lands about eighty times a second: every batch means thousands of keys a
+ * second into a buffer that is only written when the reader stops. Unbounded,
+ * a session left running fills the tab's memory with a file nobody asked for.
+ * At forty thousand rolls of forty this is a ~22MB download, which is already
+ * more than anyone reads.
+ */
+export const MAX_RECORDED_KEYS = 200_000;
+
+/**
  * Known-funded address (Binance hot wallet) swapped into a test-mode batch so the
  * "you found one" path can be exercised without waiting for a 1-in-2^160 event.
  */
@@ -65,4 +77,7 @@ export const STORAGE_KEYS = {
   keysPerRoll: 'keysPerRoll',
   verbose: 'verbose',
   screening: 'screening',
+  // Per-origin, unlike the medium: the coating is this instrument's, while
+  // dark-or-light is shared across corvardt.com in a cookie.
+  palette: 'palette',
 };

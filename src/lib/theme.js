@@ -6,6 +6,20 @@ import { useCallback, useEffect, useState } from 'react';
  */
 export const TOKENS = ['void', 'panel', 'line', 'land', 'dim', 'text', 'strike'];
 
+/**
+ * The tube's coating, carried over from Keraunos. `white` is not a colour among
+ * four — it is the absence of a coating, which is what the grey palette in
+ * index.css already is, so choosing it writes an attribute no rule matches.
+ */
+export const PALETTES = ['white', 'oil', 'crimson', 'demon'];
+
+/**
+ * All of them on the tube, none at all on paper: a coating is a property of a
+ * tube, and every palette here was drawn for a dark ground. The panel reads the
+ * length of this and drops the control rather than offering a list of one.
+ */
+export const palettesFor = (theme) => (theme === 'dark' ? PALETTES : []);
+
 // The medium is shared with the rest of corvardt.com, so the choice lives in a
 // cookie scoped to the domain rather than in localStorage, which is per-origin
 // and would not survive the walk between the index and a project.

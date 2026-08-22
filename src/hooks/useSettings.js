@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { KEYS_PER_ROLL, KEYS_PER_ROLL_OPTIONS, STORAGE_KEYS } from '../config';
 import { CHAINS, DEFAULT_CHAIN_ID } from '../lib/chains';
 import { readJSON, readNumber, readString, writeJSON, writeString } from '../lib/storage';
+import { PALETTES } from '../lib/theme';
 
 const KNOWN = new Set(CHAINS.map((chain) => chain.id));
 
@@ -72,6 +73,20 @@ export function useSettings() {
     writeString(STORAGE_KEYS.verbose, next ? 'on' : 'off');
   }, []);
 
+  // The coating. Read back from the attribute the boot script in index.html
+  // already set, so this agrees with what is on screen rather than resolving
+  // the same stored value a second time.
+  const [palette, setPaletteState] = useState(
+    () => document.documentElement.dataset.palette || 'white',
+  );
+
+  const setPalette = useCallback((next) => {
+    const safe = PALETTES.includes(next) ? next : 'white';
+    document.documentElement.dataset.palette = safe;
+    setPaletteState(safe);
+    writeString(STORAGE_KEYS.palette, safe);
+  }, []);
+
   return {
     chains,
     setChains,
@@ -82,5 +97,7 @@ export function useSettings() {
     setVerbose,
     screening,
     setScreening,
+    palette,
+    setPalette,
   };
 }

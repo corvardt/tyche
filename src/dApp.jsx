@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { AUTO_STOP_AFTER_ERRORS, KEYS_PER_ROLL_OPTIONS } from './config';
+import { AUTO_STOP_AFTER_ERRORS, KEYS_PER_ROLL_OPTIONS, MAX_RECORDED_KEYS } from './config';
 import { fundedChains, isFunded, totalBalance } from './lib/accounts';
 import { chainById, DEFAULT_CHAIN_ID } from './lib/chains';
 import { downloadAccounts, parseAccounts } from './lib/download';
@@ -18,10 +18,10 @@ import { useSettings } from './hooks/useSettings';
 import { useSnackbar } from './hooks/useSnackbar';
 
 import AddressTable from './components/AddressTable';
-import ApiKeyDialog from './components/ApiKeyDialog';
 import BlockieSheet from './components/BlockieSheet';
 import PhosphorField from './components/PhosphorField';
 import ChainPanel from './components/ChainPanel';
+import ConfigPanel from './components/ConfigPanel';
 import ContextMenu from './components/ContextMenu';
 import Crt, { Ticks } from './components/Crt';
 import FavoritesPanel from './components/FavoritesPanel';
@@ -39,7 +39,6 @@ export default function DApp() {
   const [testMode, setTestMode] = useState(false);
   const [autoMode, setAutoMode] = useState(false);
   const [autosave, setAutosave] = useState(false);
-  const [autosaveBuffer, setAutosaveBuffer] = useState([]);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [chainsOpen, setChainsOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
@@ -47,7 +46,7 @@ export default function DApp() {
   // Users bring their own Etherscan key. Prompt for it on the first visit, then
   // stay out of the way; key generation itself works without one.
   const [apiKeySet, setApiKeySet] = useState(hasApiKey);
-  const [apiKeyOpen, setApiKeyOpen] = useState(() => !hasApiKey());
+  const [configOpen, setConfigOpen] = useState(() => !hasApiKey());
 
   const snackbar = useSnackbar();
   const {
@@ -58,8 +57,18 @@ export default function DApp() {
     importFile: importFilter,
     clear: clearFilter,
   } = useFilter();
-  const { chains, toggleChain, keysPerRoll, setKeysPerRoll, verbose, setVerbose, screening, setScreening } =
-    useSettings();
+  const {
+    chains,
+    toggleChain,
+    keysPerRoll,
+    setKeysPerRoll,
+    verbose,
+    setVerbose,
+    screening,
+    setScreening,
+    palette,
+    setPalette,
+  } = useSettings();
   const {
     favorites,
     add: addFavorite,
@@ -73,6 +82,30 @@ export default function DApp() {
     setAutoMode(false);
     snackbar.show('Funded address found');
   }, [snackbar]);
+
+  // `rec` buffers finished batches until auto is switched off, then writes one
+  // file. A ref and not state: auto lands about eighty batches a second, and
+  // nothing on screen reports the buffer, so re-rendering the instrument for
+  // each one would cost more than the rolling does.
+  const autosaveBuffer = useRef([]);
+  const autosaveFull = useRef(false);
+
+  const onRoll = useCallback(
+    (batch) => {
+      if (!autoMode || !autosave) return;
+      if (autosaveBuffer.current.length + batch.length > MAX_RECORDED_KEYS) {
+        // Said once, not eighty times a second.
+        if (!autosaveFull.current) {
+          autosaveFull.current = true;
+          emit('rec', `buffer full · ${formatCount(MAX_RECORDED_KEYS)} keys held`);
+          snackbar.show('Recording buffer full');
+        }
+        return;
+      }
+      autosaveBuffer.current.push(...batch);
+    },
+    [autoMode, autosave, snackbar],
+  );
 
   const {
     accounts,
@@ -91,7 +124,7 @@ export default function DApp() {
     cancel,
     resumeAfterHit,
     roll,
-  } = useScanner({ testMode, onHit, chains, keysPerRoll, filter: screening ? filter : null });
+  } = useScanner({ testMode, onHit, onRoll, chains, keysPerRoll, filter: screening ? filter : null });
 
   const listMenu = useContextMenu('.img3');
   const favMenu = useContextMenu('.img2');
@@ -136,9 +169,9 @@ export default function DApp() {
     setAutoMode(false);
     emit('auto', `off · ${AUTO_STOP_AFTER_ERRORS} failed rolls`);
     snackbar.show('Auto stopped: no signal');
-  }, [autoMode, consecutiveErrors, snackbar.show]);
+  }, [autoMode, consecutiveErrors, snackbar]);
 
-  const anyPanelOpen = apiKeyOpen || favoritesOpen || chainsOpen || statsOpen;
+  const anyPanelOpen = configOpen || favoritesOpen || chainsOpen || statsOpen;
 
   // Single keys, no modifiers: the whole instrument is reachable without ever
   // finding a control. The old handler was registered without a cleanup (so a
@@ -159,7 +192,7 @@ export default function DApp() {
       if (key === 'x') roll();
       if (key === 'a') setAutoMode((on) => !on);
       if (key === 'v') setView((current) => (current === 'sheet' ? 'list' : 'sheet'));
-      if (key === 'k') setApiKeyOpen(true);
+      if (key === 'k') setConfigOpen(true);
       if (key === 'f') setFavoritesOpen(true);
       if (key === 'c') setChainsOpen(true);
       if (key === 's') setStatsOpen(true);
@@ -219,27 +252,26 @@ export default function DApp() {
     main.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [funded.length]);
 
-  // Accumulate finished batches while auto mode + autosave are both on. The old
-  // version pushed a stale copy of the *previous* batch from inside the fetch
-  // callback, so the saved file was always one roll behind and missed the last.
+  // The file is written whenever auto stops, not only when the button is the
+  // thing that stopped it: a find switches auto off, and so does a wall of
+  // failed rolls. Flushing from the toggle alone meant the two endings most
+  // worth having a record of were the two that silently kept it in memory.
   useEffect(() => {
-    if (!autoMode || !autosave || scanning || accounts.length === 0) return;
-    setAutosaveBuffer((buffer) =>
-      buffer.length > 0 && buffer.at(-1)?.address === accounts.at(-1)?.address
-        ? buffer
-        : [...buffer, ...accounts],
-    );
-  }, [accounts, autoMode, autosave, scanning]);
+    if (autoMode) {
+      autosaveFull.current = false;
+      return;
+    }
+    if (autosaveBuffer.current.length === 0) return;
+
+    emit('rec', `writing ${formatCount(autosaveBuffer.current.length)} keys`);
+    downloadAccounts(autosaveBuffer.current, 'autosave-data');
+    autosaveBuffer.current = [];
+  }, [autoMode]);
 
   const toggleAutoMode = () => {
     const next = !autoMode;
     setAutoMode(next);
     emit('auto', next ? 'on · continuous' : 'off');
-
-    if (!next && autosave && autosaveBuffer.length > 0) {
-      downloadAccounts(autosaveBuffer, 'autosave-data');
-      setAutosaveBuffer([]);
-    }
   };
 
   const handleAddFavorite = (account) => {
@@ -274,7 +306,7 @@ export default function DApp() {
 
   const handleApiKeySaved = (saved) => {
     setApiKeySet(saved);
-    setApiKeyOpen(false);
+    setConfigOpen(false);
     emit('key', saved ? 'saved and verified' : 'cleared');
     snackbar.show(saved ? 'Key saved' : 'Key cleared');
     // Retry the batch that's already on screen with unknown balances.
@@ -294,7 +326,7 @@ export default function DApp() {
         error={error}
         theme={theme}
         onTheme={setTheme}
-        onKeys={() => setApiKeyOpen(true)}
+        onConfig={() => setConfigOpen(true)}
         onFavorites={() => setFavoritesOpen(true)}
         onChains={() => setChainsOpen(true)}
         onStats={() => setStatsOpen(true)}
@@ -338,7 +370,7 @@ export default function DApp() {
               {funded.map((account) => (
                 <p key={account.address} className="break-all py-0.5 text-xs text-dim">
                   <span className="glow text-strike">{account.privateKey}</span>
-                  <span> // </span>
+                  <span>{' // '}</span>
                   {/* Every chain it landed on, each in its own unit. */}
                   <span className="glow-hot text-strike">
                     {fundedChains(account)
@@ -480,7 +512,7 @@ export default function DApp() {
           {error && (
             <button
               type="button"
-              onClick={() => setApiKeyOpen(true)}
+              onClick={() => setConfigOpen(true)}
               className="mt-3 flex items-baseline gap-2 border border-line bg-panel px-3 py-2 text-left"
             >
               <span className="text-2xs uppercase tracking-label text-dim">no signal</span>
@@ -529,6 +561,7 @@ export default function DApp() {
                         candidates={session.candidates}
                         batchSize={keysPerRoll}
                         theme={theme}
+                        palette={palette}
                       />
                     ) : (
                       <BlockieSheet
@@ -586,10 +619,24 @@ export default function DApp() {
         </div>
       </footer>
 
-      <ApiKeyDialog
-        open={apiKeyOpen}
-        onClose={() => setApiKeyOpen(false)}
+      <ConfigPanel
+        open={configOpen}
+        onClose={() => setConfigOpen(false)}
         onSaved={handleApiKeySaved}
+        verbose={verbose}
+        onVerbose={setVerbose}
+        filter={filter}
+        filterError={filterError}
+        screening={screening}
+        onScreening={setScreening}
+        importing={filterImporting}
+        onImportFilter={importFilter}
+        onClearFilter={clearFilter}
+        session={session}
+        theme={theme}
+        onTheme={setTheme}
+        palette={palette}
+        onPalette={setPalette}
       />
 
       <FavoritesPanel
@@ -619,15 +666,8 @@ export default function DApp() {
         session={session}
         chains={chains}
         keysPerRoll={keysPerRoll}
-        verbose={verbose}
-        onVerbose={setVerbose}
         filter={filter}
-        filterError={filterError}
         screening={screening}
-        onScreening={setScreening}
-        importing={filterImporting}
-        onImportFilter={importFilter}
-        onClearFilter={clearFilter}
         onClose={() => setStatsOpen(false)}
       />
 

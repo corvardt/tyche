@@ -111,6 +111,68 @@
     --bloom-hot: rgba(0, 0, 0, 0.28);
   }
 
+  /* ── Coatings ────────────────────────────────────────────────────────────
+     Borrowed palettes, carried over from Keraunos so the two instruments
+     share a medium as well as a typeface. Dark only: these describe a tube,
+     and paper has one ink, which is why there is no light counterpart to any
+     of them and why `[data-theme='dark']` is part of every selector.
+
+     What is borrowed is the hue. The weight is not — each colour was slid
+     along the line between it and its own ground until it sat at exactly the
+     contrast the grey palette above gives that token, so switching coating
+     changes the colours and nothing else: line still sits under land, land
+     under dim, dim under text. A saturated hue carries far more apparent
+     weight than a grey of the same luminance, and taken at face value these
+     redecorate the hierarchy the whole interface is read through.
+
+     Strike is white in all three, and not by oversight. No palette here can
+     reach white's distance from its own ground, so the derivation runs it to
+     the top of its range and leaves it there — which lands exactly where this
+     interface already stood: white is reserved, and nothing reaches it except
+     an address that actually holds ether. For the same reason the bloom and
+     `--ink-hot` are unchanged from dark, and are not repeated below. */
+
+  /* Oil 6, by GrafxKid. https://lospec.com/palette-list/oil-6
+     Dark navy up through slate and mauve to sand and cream. */
+  :root[data-theme='dark'][data-palette='oil'] {
+    --c-void: #272744;
+    --c-panel: #292948;
+    --c-line: #373960;
+    --c-land: #6e5982;
+    --c-dim: #ab8b95;
+    --c-text: #ffe6b7;
+
+    --ink-rest: #ffe6b7;
+  }
+
+  /* Crimson, by WildLeoKnight. https://lospec.com/palette-list/crimson
+     Four colours, so hues repeat across the rungs; the levels between them
+     are the instrument's. */
+  :root[data-theme='dark'][data-palette='crimson'] {
+    --c-void: #1b0326;
+    --c-panel: #220529;
+    --c-line: #4b1039;
+    --c-land: #83353a;
+    --c-dim: #cd5947;
+    --c-text: #c9cdb7;
+
+    --ink-rest: #c9cdb7;
+  }
+
+  /* Blood Demon RX, by Chicknhawk.
+     https://lospec.com/palette-list/blood-demon-rx
+     Dark navy up through wine and crimson to a hot pink. */
+  :root[data-theme='dark'][data-palette='demon'] {
+    --c-void: #171f37;
+    --c-panel: #1f2138;
+    --c-line: #4b2941;
+    --c-land: #98374e;
+    --c-dim: #f7495f;
+    --c-text: #ffcfe2;
+
+    --ink-rest: #ffcfe2;
+  }
+
   html,
   body,
   #root {

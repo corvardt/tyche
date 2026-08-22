@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const VISIBLE_MS = 1700;
 
@@ -24,5 +24,9 @@ export function useSnackbar() {
 
   useEffect(() => () => clearTimeout(timeout.current), []);
 
-  return { message, show, dismiss: clear };
+  // A fresh object every render made this hook impossible to depend on
+  // honestly: callers wanting `show` in a dependency array had to reach past
+  // the object and name the method, which reads like an oversight and which
+  // the hooks lint flags as one.
+  return useMemo(() => ({ message, show, dismiss: clear }), [message, show, clear]);
 }

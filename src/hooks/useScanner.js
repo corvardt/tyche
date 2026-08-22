@@ -19,6 +19,7 @@ import { emit } from '../lib/telemetry';
 export function useScanner({
   testMode,
   onHit,
+  onRoll,
   chains,
   keysPerRoll = KEYS_PER_ROLL,
   filter = null,
@@ -26,7 +27,6 @@ export function useScanner({
   const [accounts, setAccounts] = useState([]);
   const [previousAccounts, setPreviousAccounts] = useState([]);
   const [scanning, setScanning] = useState(false);
-  const [hasScanned, setHasScanned] = useState(false);
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -75,6 +75,7 @@ export function useScanner({
   const inFlight = useRef(false);
   const mounted = useRef(true);
   const onHitRef = useRef(onHit);
+  const onRollRef = useRef(onRoll);
 
   /** Counts rolls for the telemetry line, so its traffic can be followed. */
   const rollNumber = useRef(0);
@@ -96,6 +97,7 @@ export function useScanner({
 
   useEffect(() => {
     onHitRef.current = onHit;
+    onRollRef.current = onRoll;
   });
 
   // `fetchBalances` and `fetchEthPrice` have both taken a `signal` from the
@@ -261,7 +263,13 @@ export function useScanner({
         setPreviousAccounts(scanned);
         setResolved(batch.length);
       }
-      setHasScanned(true);
+
+      // Every batch that finished, drawn or not. `rec` used to accumulate from
+      // `accounts`, which is written only when the sheet is due a redraw: under
+      // auto that is 2.5 batches a second out of eighty, so the file it wrote
+      // held a few percent of what the session had actually generated.
+      onRollRef.current?.(scanned);
+
       setProgress(100);
       setElapsedMs(Date.now() - started);
       setConsecutiveErrors(0);
@@ -270,11 +278,15 @@ export function useScanner({
       writeString(STORAGE_KEYS.keysChecked, String(total));
       setKeysChecked(total);
 
+      // What the roll actually cost: a screened roll reads its candidates, not
+      // its batch, and most rolls raise none at all.
+      const calls = callsPerRoll(toRead.length, chains ?? []);
+
       setSession((current) => ({
         ...current,
         keys: current.keys + batch.length,
         rolls: current.rolls + 1,
-        calls: current.calls + (filter ? callsPerRoll(toRead.length, chains ?? []) : callsPerRoll(batch.length, chains ?? [])),
+        calls: current.calls + calls,
         screened: current.screened + (filter ? batch.length : 0),
         candidates: current.candidates + (filter ? toRead.length : 0),
       }));
@@ -282,7 +294,7 @@ export function useScanner({
       const funded = scanned.filter(isFunded);
       emit(
         'done',
-        `#${rollNumber.current} · ${batch.length} checked · ${funded.length} funded · ${Date.now() - started}ms · ${callsPerRoll(batch.length, chains ?? [])} calls`,
+        `#${rollNumber.current} · ${batch.length} checked · ${funded.length} funded · ${Date.now() - started}ms · ${calls} calls`,
       );
 
       if (funded.length > 0) {
@@ -353,7 +365,6 @@ export function useScanner({
     accounts,
     previousAccounts,
     scanning,
-    hasScanned,
     error,
     progress,
     elapsedMs,

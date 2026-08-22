@@ -15,7 +15,8 @@ npm install
 npm run dev      # dev server
 npm run build    # production build to ./dist
 npm run preview  # serve that build
-npm test         # unit tests
+npm test         # unit tests: `lib` under node, hooks and components under jsdom
+npm run lint     # eslint
 ```
 
 An Etherscan API key is needed for balances, and the app asks for yours on first
@@ -26,16 +27,18 @@ load; see below. Nothing else is configured, and there is no `.env` to fill in.
 | | |
 | --- | --- |
 | **Roll** | Keys are generated, screened, and looked up in batches of twenty. The sheet fills as it goes: an empty slot has no key yet, a latent cell has an address but no balance, a developed one has been read. `20 / 40 / 100 / 200` sets how many a roll makes; `stop` abandons one in flight |
-| **Auto** | Rolls continuously until stopped, or until something is found. Each roll starts as the last one ends, so what sets the pace is whatever is actually slowest: the rate limiter when the chain is being read, key generation when the screen has spared it. `rec` alongside it buffers every batch and writes one file when you stop |
+| **Auto** | Rolls continuously until stopped, or until something is found. Each roll starts as the last one ends, so what sets the pace is whatever is actually slowest: the rate limiter when the chain is being read, key generation when the screen has spared it. `rec` alongside it buffers every batch — every roll, not every roll the sheet had time to draw — and writes one file whenever auto stops, including when a find is what stopped it. Recording holds 200,000 keys before it stops taking more, which a screened run reaches in about a minute |
 | **Sheet** | The batch as a contact sheet of identicons. Right-click any cell for its actions; the colour is derived from the address, so it is the fastest way to tell forty of them apart |
 | **List** | The same batch as a log: channel number, address, private key, balance. The address links to Etherscan |
 | **Keep** | Kept keys go to `localStorage` and open from `kept` in the header. Export writes them as address/key pairs; import reads them back, or any text with private keys in it, since a key determines its own address |
 | **Chains** | Which chains a roll is read against, and what that costs. Ethereum only unless you say otherwise. Read the cost panel before adding any |
-| **Stats** | Rate, session, the fraction of the keyspace covered, and what the day's API allowance has left. Also where the screen and the status line are switched on |
-| **Screen** | Load a list of addresses worth finding and the chain is only asked about the ones that match. Two orders of magnitude more keys a day, and no API key needed for the misses |
-| **Status** | A line along the bottom edge naming everything as it happens, one entry at a time. On unless you turn it off under `stats` |
+| **Cfg** | Everything the reader sets, in one panel: the medium and the tube, the API key, the screen, the status line. `stats` reports, `cfg` decides |
+| **Stats** | Rate, session, the fraction of the keyspace covered, and what the day's API allowance has left |
+| **Screen** | Load a list of addresses worth finding and the chain is only asked about the ones that match. Two orders of magnitude more keys a day, and no API key needed for the misses. Under `cfg` |
+| **Status** | A line along the bottom edge naming everything as it happens, one entry at a time. On unless you turn it off under `cfg` |
 | **Test** | Plants a known funded address (a Binance hot wallet) in the batch, so the found-one path can be exercised without waiting for a 1-in-2^160 event |
-| **Keys** | `x` roll · `a` auto · `v` sheet/list · `k` api key · `f` kept keys · `c` chains · `s` stats · `t` dark/light |
+| **Tube** | Dark or light, and on dark which phosphor the tube is coated with: `white`, or one of three palettes carried over from Keraunos. Top of `cfg` |
+| **Keys** | `x` roll · `a` auto · `v` sheet/list · `k` cfg · `f` kept keys · `c` chains · `s` stats · `t` dark/light |
 
 ### When something is found
 
@@ -54,7 +57,7 @@ find is the one thing that should not be dismissed by reflex.
 ## The API key
 
 Balance lookups need an Etherscan key, and the app ships without one. It is
-asked for on first load and can be changed or cleared from `api` in the header.
+asked for on first load and can be changed or cleared from `cfg` in the header.
 
 It is validated against the live API before being saved, then kept in that
 browser's `localStorage` and sent to Etherscan and nowhere else. No key is
@@ -76,7 +79,7 @@ A line along the bottom edge names everything the instrument does as it does it:
 each roll, the keys as they are generated, every call and the chain it went to,
 every wait the rate limiter imposed, every find. Watching the machine work is
 most of what there is to do here, so it is on unless you turn it off, from
-`verbose status line` under `stats`. One roll of forty against two chains reads:
+`verbose status line` under `cfg`. One roll of forty against two chains reads:
 
 ```
 20:14:03.118 00012 ROLL     #2 · 40 keys · 2 chain(s)
@@ -133,7 +136,7 @@ a day. Everything above is the machine idling while it waits for its allowance.
 
 Load a list of addresses worth finding and that inverts. Every generated address
 is checked against a Bloom filter held in memory, at over a million a second, and
-the chain is asked only about the ones that match. `load addresses` under `stats`
+the chain is asked only about the ones that match. `load addresses` under `cfg`
 takes a plain text or CSV file — a BigQuery export, a Dune result, a bare list —
 and builds the filter in the browser. There is a command-line equivalent for
 building one ahead of time:
@@ -226,7 +229,8 @@ people look for first.
 | `scripts/build-filter.mjs` | Builds a filter from an address list, ahead of time |
 | `src/lib/telemetry.js` | The commentary bus. Everything publishes here; the status line is the only subscriber |
 | `src/components/StatusLine.jsx` | That commentary, one line, bottom edge |
-| `src/lib/theme.js` | Medium selection, stored domain-wide as a cookie on `.corvardt.com` |
+| `src/lib/theme.js` | Medium selection, stored domain-wide as a cookie on `.corvardt.com`; the coating is this origin's own |
+| `src/components/ConfigPanel.jsx` | Everything the reader sets: medium, key, screen, status line |
 | `src/components/BlockieSheet.jsx` | The contact sheet |
 | `src/components/AddressTable.jsx` | The same batch as a log |
 | `src/components/Panel.jsx` | Modal shell shared by the key panel and the kept sheet: backdrop, focus trap, `esc`, corner ticks |

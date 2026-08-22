@@ -64,8 +64,9 @@ const readInk = (element) => {
  * @param {number} props.candidates candidates raised this session, cumulative
  * @param {number} props.batchSize  keys per roll, so the field stands where the sheet did
  * @param {string} props.theme      re-read the palette when the medium changes
+ * @param {string} props.palette    or when the tube's coating does
  */
-function PhosphorField({ screened, candidates, batchSize = 40, theme = 'dark' }) {
+function PhosphorField({ screened, candidates, batchSize = 40, theme = 'dark', palette = 'white' }) {
   const canvasRef = useRef(null);
   const latest = useRef({ screened, candidates });
   const [rate, setRate] = useState(0);
@@ -217,7 +218,7 @@ function PhosphorField({ screened, candidates, batchSize = 40, theme = 'dark' })
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [theme]);
+  }, [theme, palette]);
 
   // The sheet is five cells across, eight past the breakpoint, and its height
   // follows from that. The field takes the same shape so switching between them

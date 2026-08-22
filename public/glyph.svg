@@ -1,60 +1,52 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <!-- The sheet at 16px: nine cells running off the edge, one of them the lot
-       that fell. The tile is Keraunos', and it carries its own ground on
-       purpose. A bare glyph has to guess the colour of the tab bar, and the
-       only tool for that is a prefers-color-scheme query inside the SVG, which
-       browsers resolve inconsistently for an icon and Safari has never been
-       reliable about. A dark tile is legible against light chrome and dark
-       chrome alike, and it is what the page looks like anyway.
+  <!-- The lot that falls, at 16px. The tile carries its own ground, as
+       Keraunos' and Oikos' do. A bare glyph has to guess the colour of the tab
+       bar, and the only tool for that is a prefers-color-scheme query inside the
+       SVG, which browsers resolve inconsistently for an icon and Safari has
+       never been reliable about. A dark tile is legible against light chrome and
+       dark chrome alike, and it is what the page looks like anyway.
 
-       What the two instruments do not share is the ink. Keraunos draws a single
-       arrival and is entitled to full white; this is the same tube once the
-       decay rule has run, so the lot sits at rest ink and the field it fell
-       into sits at 0.10, which composites to #232323 over the void. That is
-       9.4:1 under the lot and still 1.26:1 above the ground, and the second
-       number is the one that matters here: the field bleeds to the edge, so
-       the cells are also what describes the corner radius. Any darker and they
-       merge into the tile, the grid stops resolving, and what is left is one
-       pale square floating on black. -->
+       One figure on the void, because that is all a tab bar has room for. The
+       sheet was drawn here once, nine cells at 0.10 running off the edge, and
+       the field it needed to read as a grid was too faint to survive the
+       downscale: what was left at 16px was the one pale cell, in the corner,
+       bleeding into the tile's own silhouette. So the subject is the event
+       rather than the sheet it lands in.
+
+       A cell of that sheet, on its corner. Squared and unrotated it is the
+       identicon; on its corner it is the lot in the air, and the two ghosts
+       above it are the throws already spent, at the two steps of the decay rule
+       the sheet fades by. The lot is centred on the tile, so what remains when
+       the trail dies below about 20px is the figure and nothing else.
+
+       Full white, not the rest ink. Keraunos draws a single arrival and is
+       entitled to it; this is the same, an event that will not happen, drawn as
+       though it has. Oikos sits at #c8c8cc because it draws a wordmark and not
+       an arrival. -->
   <defs>
     <radialGradient id="bloom" cx="50%" cy="46%" r="50%">
-      <stop offset="0%" stop-color="#fff" stop-opacity="0.2" />
-      <stop offset="55%" stop-color="#fff" stop-opacity="0.05" />
-      <stop offset="100%" stop-color="#fff" stop-opacity="0" />
-    </radialGradient>
-    <radialGradient id="lot">
       <stop offset="0%" stop-color="#fff" stop-opacity="0.28" />
+      <stop offset="55%" stop-color="#fff" stop-opacity="0.06" />
       <stop offset="100%" stop-color="#fff" stop-opacity="0" />
     </radialGradient>
-    <clipPath id="tile">
-      <rect width="32" height="32" rx="7" />
-    </clipPath>
   </defs>
 
   <rect width="32" height="32" rx="7" fill="#0a0a0b" />
+  <circle cx="16" cy="15" r="14" fill="url(#bloom)" />
 
-  <!-- Clipped to the tile, or the field squares off the corners the hairline
-       below spends its whole existence establishing. -->
-  <g clip-path="url(#tile)">
-    <circle cx="16" cy="15" r="14" fill="url(#bloom)" />
+  <!-- The lot. 11 on the side, so the diagonal is 15.6 and the points clear the
+       tile's radius without touching it. -->
+  <g transform="rotate(45 16 16)">
+    <rect x="10.50" y="10.50" width="11" height="11" fill="#ffffff" />
+  </g>
 
-    <!-- Eight that missed. Cells of 9.2 on a step of 11.4, so the outer ones
-         are cut by the radius rather than stopping short of it. -->
-    <g fill="#ffffff" fill-opacity="0.1">
-      <rect x="0" y="0" width="9.2" height="9.2" />
-      <rect x="11.4" y="0" width="9.2" height="9.2" />
-      <rect x="0" y="11.4" width="9.2" height="9.2" />
-      <rect x="11.4" y="11.4" width="9.2" height="9.2" />
-      <rect x="22.8" y="11.4" width="9.2" height="9.2" />
-      <rect x="0" y="22.8" width="9.2" height="9.2" />
-      <rect x="11.4" y="22.8" width="9.2" height="9.2" />
-      <rect x="22.8" y="22.8" width="9.2" height="9.2" />
-    </g>
-
-    <!-- The lot. Off-centre because a centred one reads as a target, something
-         aimed at, and the whole subject is that nothing here can be aimed. -->
-    <circle cx="27.4" cy="4.6" r="11.5" fill="url(#lot)" />
-    <rect x="22.8" y="0" width="9.2" height="9.2" fill="#c8c8cc" />
+  <!-- Spent: the throw before this one, on the same centre line. One and not a
+       longer trail, because a centred lot leaves 8 above it and anything that
+       fills that gap closes it — two ghosts merged into a stalk and the figure
+       stopped reading as a thing in the air. The 1.4 of void under this one is
+       doing as much work as the mark is. -->
+  <g transform="rotate(45 16 4.11)">
+    <rect x="14.10" y="2.21" width="3.8" height="3.8" fill="#ffffff" fill-opacity="0.26" />
   </g>
 
   <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="none" stroke="#ffffff" stroke-opacity="0.1" />

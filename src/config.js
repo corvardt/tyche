@@ -30,8 +30,8 @@ export const ETHERSCAN_CALLS_PER_DAY = 100_000;
  * Auto used to roll on a two-second timer, which made sense when a roll cost
  * two API calls and 300ms of key generation. It does not now: screening removes
  * the API from an ordinary roll entirely, so the pause was the slowest thing
- * left. Auto rolls continuously instead, and this is the one thing still paced
- * — a display constraint, not a rate limit. Batches that land inside it are
+ * left. Auto rolls continuously instead, and this is the one thing still paced:
+ * a display constraint, not a rate limit. Batches that land inside it are
  * still generated, screened and counted; they are simply not drawn, which also
  * spares them their identicons. Encoding two hundred of those costs ~266ms,
  * more than making the keys in the first place.
@@ -41,7 +41,7 @@ export const SHEET_MIN_MS = 400;
 /**
  * Consecutive failed rolls before auto mode switches itself off. A wrong key or
  * an exhausted rate limit fails every roll, and auto answered that by asking
- * again every two seconds indefinitely — which, for a rate limit, is the one
+ * again every two seconds indefinitely, which, for a rate limit, is the one
  * response guaranteed not to clear it.
  */
 export const AUTO_STOP_AFTER_ERRORS = 3;

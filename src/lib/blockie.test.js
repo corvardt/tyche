@@ -24,7 +24,7 @@ describe('the identicon cache', () => {
   it('holds a full sheet at the largest roll size', () => {
     // The regression this exists for: capacity was a flat 128 while a roll
     // could be 200, so the working set no longer fit and every repaint evicted
-    // the entries it was about to ask for — 306ms of encoding per repaint, at
+    // the entries it was about to ask for: 306ms of encoding per repaint, at
     // exactly the setting where the cache mattered most.
     const largest = Math.max(...KEYS_PER_ROLL_OPTIONS);
     const addresses = sheet(largest);

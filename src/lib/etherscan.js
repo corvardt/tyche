@@ -120,7 +120,7 @@ export const callsPerRoll = (count, chains) =>
  * Looks up balances for any number of addresses, on any number of chains.
  *
  * Etherscan V2 is one endpoint and one key for every chain it serves, so this
- * is the same call with a different `chainid` — but it is emphatically not
+ * is the same call with a different `chainid`, but it is emphatically not
  * free: each chain multiplies the calls a roll costs, against an account-wide
  * quota. See `callsPerRoll`, which the chain panel puts on screen.
  *
@@ -190,7 +190,7 @@ export async function fetchBalances(addresses, { chains, signal, onBatch } = {})
  *
  * Rolling has a running cost and the app was silent about it; this is the one
  * number that says how much of the day's allowance a session has spent. It is
- * best-effort — the endpoint is not guaranteed on every plan, and a failure
+ * best-effort: the endpoint is not guaranteed on every plan, and a failure
  * here must never take a roll down with it.
  *
  * @returns {Promise<{used: number, limit: number, remaining: number, expiresIn: string}|null>}

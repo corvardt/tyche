@@ -36,7 +36,7 @@ export function useScanner({
   );
   // How many of the batch on screen have actually been read. Everything past
   // it is latent: the address is known the moment it is generated, so the
-  // identicon is there from the start — it is the balance that has not arrived.
+  // identicon is there from the start: it is the balance that has not arrived.
   const [resolved, setResolved] = useState(0);
   const [halted, setHalted] = useState(false);
   // Rolls that have failed back to back. Auto mode watches this so a bad key or
@@ -81,7 +81,7 @@ export function useScanner({
   const rollNumber = useRef(0);
 
   // When the sheet last changed. Auto runs flat out; the display does not have
-  // to keep up with it, and should not try — drawing a batch means encoding an
+  // to keep up with it, and should not try: drawing a batch means encoding an
   // identicon per cell, which costs more than making the keys did.
   const lastShown = useRef(0);
 
@@ -116,7 +116,7 @@ export function useScanner({
   const recordHits = useCallback((funded) => {
     if (funded.length === 0) return;
 
-    // Hits were stored as `"<key> has <n>Ξ"` segments joined with '; ' — one
+    // Hits were stored as `"<key> has <n>Ξ"` segments joined with '; ': one
     // string holding the only data in the app that has to outlive the tab, in
     // the least readable form available. They are records now, with the address
     // and the time they landed, which the old format threw away.
@@ -165,7 +165,7 @@ export function useScanner({
     );
 
     // A batch is drawn only if the last one has had its time on screen. The
-    // rest are still generated, screened, counted and checked for a find —
+    // rest are still generated, screened, counted and checked for a find;
     // they are simply not rendered, and so cost no identicons.
     const show = Date.now() - lastShown.current >= SHEET_MIN_MS;
     if (show) {
@@ -190,7 +190,7 @@ export function useScanner({
         chunk: show ? 20 : 100,
         // The new batch is written over the old one where it stands rather
         // than the sheet being cleared first. Clearing meant a full grid, an
-        // empty grid and a refill every time — at four hundred milliseconds
+        // empty grid and a refill every time: at four hundred milliseconds
         // that is a flash, not an animation. Overwriting in place leaves the
         // sheet always full, and the new keys wipe across it.
         onChunk: show
@@ -211,7 +211,7 @@ export function useScanner({
       // With a filter loaded, the chain is asked about candidates only. Almost
       // every roll has none, and costs nothing: the quota stops being what
       // limits how many keys a day can be checked, and generation starts being
-      // it instead — about two orders of magnitude further out.
+      // it instead, about two orders of magnitude further out.
       let toRead = batch;
       if (filter) {
         const screenedAt = Date.now();
@@ -222,7 +222,7 @@ export function useScanner({
         );
       }
 
-      // A screened roll with nothing to confirm needs no API at all — not even
+      // A screened roll with nothing to confirm needs no API at all, not even
       // a key. That is the ordinary outcome, and it is why a filter lets the
       // instrument run without one.
       const balances =

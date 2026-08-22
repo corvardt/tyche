@@ -27,7 +27,7 @@ load; see below. Nothing else is configured, and there is no `.env` to fill in.
 | | |
 | --- | --- |
 | **Roll** | Keys are generated, screened, and looked up in batches of twenty. The sheet fills as it goes: an empty slot has no key yet, a latent cell has an address but no balance, a developed one has been read. `20 / 40 / 100 / 200` sets how many a roll makes; `stop` abandons one in flight |
-| **Auto** | Rolls continuously until stopped, or until something is found. Each roll starts as the last one ends, so what sets the pace is whatever is actually slowest: the rate limiter when the chain is being read, key generation when the screen has spared it. `rec` alongside it buffers every batch — every roll, not every roll the sheet had time to draw — and writes one file whenever auto stops, including when a find is what stopped it. Recording holds 200,000 keys before it stops taking more, which a screened run reaches in about a minute |
+| **Auto** | Rolls continuously until stopped, or until something is found. Each roll starts as the last one ends, so what sets the pace is whatever is actually slowest: the rate limiter when the chain is being read, key generation when the screen has spared it. `rec` alongside it buffers every batch (every roll, not every roll the sheet had time to draw) and writes one file whenever auto stops, including when a find is what stopped it. Recording holds 200,000 keys before it stops taking more, which a screened run reaches in about a minute |
 | **Sheet** | The batch as a contact sheet of identicons. Right-click any cell for its actions; the colour is derived from the address, so it is the fastest way to tell forty of them apart |
 | **List** | The same batch as a log: channel number, address, private key, balance. The address links to Etherscan |
 | **Keep** | Kept keys go to `localStorage` and open from `kept` in the header. Export writes them as address/key pairs; import reads them back, or any text with private keys in it, since a key determines its own address |
@@ -94,7 +94,7 @@ most of what there is to do here, so it is on unless you turn it off, from
 
 Events are published to a bus and the line subscribes to it directly, so an
 entry arriving re-renders one line rather than the page. They are paced at one
-every 110ms — a roll emits its start, its generation timing and its first lookup
+every 110ms: a roll emits its start, its generation timing and its first lookup
 inside about fifteen milliseconds, and anything rendering them as they arrive
 gets coalesced into a single paint, so the entries in between are shown to
 nobody. If the machine ever outruns the line the backlog is dropped from the
@@ -107,7 +107,7 @@ A roll has three phases and the sheet shows all three, because which one is
 slow depends entirely on how the instrument is set up.
 
 Keys are generated in twenties, yielding to the browser between them, so the
-grid fills rather than appearing at once — two hundred keys is about 75ms of
+grid fills rather than appearing at once; two hundred keys is about 75ms of
 secp256k1 and used to be a dropped frame. Each cell then sits *latent*: its
 address exists, and so does its identicon, but its balance does not. It develops
 when its twenty are answered.
@@ -117,14 +117,14 @@ filling while the rate limiter holds. The pause is not an animation waiting; it
 is the instrument telling you what it is doing.
 
 With a filter loaded the balance of the two inverts. Generation becomes the only
-slow part — the screen is sub-millisecond and the chain is usually not asked at
-all — so the roll reads as a sheet being made rather than a sheet being
+slow part (the screen is sub-millisecond and the chain is usually not asked at
+all), so the roll reads as a sheet being made rather than a sheet being
 confirmed. Without one, generation is a blink and the developing is the whole
 show. Neither is decoration: each phase animates only while it is the one taking
 the time.
 
 The list says the same thing in its own terms. A row with no balance yet reads
-`— — —`, which is a different fact from `0.0...` — the app could not previously
+`- - -`, which is a different fact from `0.0...`; the app could not previously
 tell "not yet read" from "read, and empty".
 
 ## The screen
@@ -137,7 +137,7 @@ a day. Everything above is the machine idling while it waits for its allowance.
 Load a list of addresses worth finding and that inverts. Every generated address
 is checked against a Bloom filter held in memory, at over a million a second, and
 the chain is asked only about the ones that match. `load addresses` under `cfg`
-takes a plain text or CSV file — a BigQuery export, a Dune result, a bare list —
+takes a plain text or CSV file (a BigQuery export, a Dune result, a bare list)
 and builds the filter in the browser. There is a command-line equivalent for
 building one ahead of time:
 
@@ -149,7 +149,7 @@ which a self-hosted deployment can ship in `public/`, and which the app loads if
 nothing has been imported.
 
 At a hundred thousand addresses the filter is about 470kB and reports a false
-candidate roughly one time in a hundred million — so at 230M keys a day, about
+candidate roughly one time in a hundred million, so at 230M keys a day, about
 two candidates to confirm, against an allowance of a hundred thousand calls. A
 roll that raises no candidate costs nothing at all, which means an ordinary roll
 needs no API key: without one the screen still runs and only a candidate goes
@@ -160,7 +160,7 @@ still covers about 1e-40 of the keyspace. It is a hundred times more instrument
 for no more quota, and the arithmetic of what it is not finding is in `stats`.
 
 What goes in the list is the interesting decision. Screening is only worth the
-bytes it spends, and most addresses holding *something* hold dust — an address
+bytes it spends, and most addresses holding *something* hold dust: an address
 with 0.000005 Ξ costs the same room in the filter as one with thirty, and raises
 a candidate worth the same nothing. Filtering the list by a minimum balance
 before building makes the filter smaller, the download shorter and every
@@ -168,7 +168,7 @@ candidate worth confirming. `key_list/balance_checker.py` does that pass.
 
 The list is yours for the same reasons the API key is: it is large, it goes
 stale, and what counts as worth finding is your call. Nothing is bundled, and
-the file never leaves the browser — it is read locally and the filter is built
+the file never leaves the browser; it is read locally and the filter is built
 there.
 
 ## Chains, and what they cost

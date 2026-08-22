@@ -10,7 +10,7 @@ const KNOWN = new Set(CHAINS.map((chain) => chain.id));
  * What the instrument is set to: which chains a roll is read against, and how
  * many keys it generates.
  *
- * Both default to what the app did before they existed — mainnet, forty keys —
+ * Both default to what the app did before they existed (mainnet, forty keys)
  * because both cost quota, and a stored setting should never be able to make
  * the app more expensive than the reader last saw it being.
  */

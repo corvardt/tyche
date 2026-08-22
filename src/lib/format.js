@@ -9,7 +9,7 @@ const DUST_DIGITS = { maximumSignificantDigits: 3 };
  * Balances in Ξ. `0.0...` is the placeholder for nothing there.
  *
  * Anything under 1e-5 used to print as `0`, so a funded row could glow hot next
- * to a balance reading zero — the one number the instrument exists to show,
+ * to a balance reading zero: the one number the instrument exists to show,
  * rounded away. Sub-dust amounts switch to significant digits instead, which is
  * long but true; the fixed five places stay for everything at normal scale,
  * where significant digits would round 1234.5 to 1,230.

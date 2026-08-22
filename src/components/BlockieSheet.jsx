@@ -82,7 +82,7 @@ function BlockieSheet({
       })}
 
       {/* Slots for keys not yet made, held after what exists so the sheet
-          fills from the start rather than growing — a growing grid would
+          fills from the start rather than growing; a growing grid would
           reflow the page under the reader on every roll. */}
       {Array.from({ length: Math.max(0, slots - accounts.length) }, (_, index) => (
         <div key={`slot-${index}`} className="cell cell-empty" aria-hidden="true" />

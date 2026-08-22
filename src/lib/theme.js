@@ -8,7 +8,7 @@ export const TOKENS = ['void', 'panel', 'line', 'land', 'dim', 'text', 'strike']
 
 /**
  * The tube's coating, carried over from Keraunos. `white` is not a colour among
- * four — it is the absence of a coating, which is what the grey palette in
+ * four: it is the absence of a coating, which is what the grey palette in
  * index.css already is, so choosing it writes an attribute no rule matches.
  */
 export const PALETTES = ['white', 'oil', 'crimson', 'demon'];

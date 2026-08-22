@@ -3,7 +3,7 @@
  * Builds the funded-address filter the app screens against.
  *
  * Input is a list of addresses, one per line, or any delimited file with the
- * address first on each line — a CSV straight out of BigQuery or Dune works
+ * address first on each line: a CSV straight out of BigQuery or Dune works
  * without editing. Lines that are not addresses are counted and skipped, so a
  * header row costs nothing.
  *
@@ -67,7 +67,7 @@ console.error(`reading ${input === '-' ? 'stdin' : input}`);
 const { addresses, skipped } = await readAddresses(input);
 
 if (addresses.length === 0) {
-  console.error('no addresses found — expected 0x-prefixed 40-hex values');
+  console.error('no addresses found: expected 0x-prefixed 40-hex values');
   process.exit(1);
 }
 

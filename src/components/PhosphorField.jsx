@@ -6,12 +6,12 @@ import { memo, useEffect, useRef, useState } from 'react';
  * A contact sheet is a way of looking at forty keys. Under auto with a filter
  * loaded there are thousands a second and none of them survive, so forty
  * identicons swapped wholesale every four hundred milliseconds is not a picture
- * of anything — it is a strobe, and the one thing it cannot show is the one
+ * of anything: it is a strobe, and the one thing it cannot show is the one
  * thing happening: volume passing through a filter that rejects all of it.
  *
  * So the cells go and the tube itself is the readout. Every screened key leaves
  * a grain, every grain decays, and what stands on the glass is the balance
- * between the two: density is rate, directly. Nothing here is a frame — the
+ * between the two: density is rate, directly. Nothing here is a frame: the
  * field is continuous, which is precisely why it cannot flicker no matter how
  * fast rolls land behind it.
  *
@@ -72,7 +72,7 @@ function PhosphorField({ screened, candidates, batchSize = 40, theme = 'dark', p
   const [rate, setRate] = useState(0);
 
   // Written every render, read by the loop. The loop must not restart when a
-  // roll lands — at eighty rolls a second it would never run a frame.
+  // roll lands; at eighty rolls a second it would never run a frame.
   useEffect(() => {
     latest.current = { screened, candidates };
   });

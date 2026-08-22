@@ -142,7 +142,7 @@ export default function DApp() {
   // The two-second interval made sense when a roll cost two API calls and
   // 300ms of key generation; screening removes the API from an ordinary roll
   // entirely, and the pause became the slowest thing left in the loop. What
-  // paces it now is whatever is actually the bottleneck — the rate limiter
+  // paces it now is whatever is actually the bottleneck: the rate limiter
   // when the chain is being read, key generation when it is not.
   //
   // The timeout is zero but not pointless: it breaks the synchronous chain so
@@ -215,7 +215,7 @@ export default function DApp() {
   // The one state the contact sheet cannot describe: auto, screened, thousands
   // a second, nothing surviving. Everywhere else a batch is something you can
   // actually look at, so everywhere else keeps its blockies. A find drops out
-  // of this on its own — it switches auto off, and the sheet comes back holding
+  // of this on its own: it switches auto off, and the sheet comes back holding
   // the batch that stopped the machine.
   const streaming = autoMode && screening && Boolean(filter) && !halted;
 
@@ -223,7 +223,7 @@ export default function DApp() {
   // anything wired straight to `scanning` flickers at eighty hertz. `[ roll ]`
   // was the worst of it: its label alternated between `roll` and `rolling`,
   // which are different widths, so the whole control row jittered sideways.
-  // Streaming is one continuous roll as far as the controls are concerned —
+  // Streaming is one continuous roll as far as the controls are concerned,
   // held down, stoppable, and no per-batch progress worth reporting.
   const busy = streaming || scanning;
 

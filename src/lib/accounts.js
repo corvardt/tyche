@@ -9,7 +9,7 @@ import { DEFAULT_CHAIN_ID } from './chains';
  * `balances` is keyed by chain id and holds only what is actually there: a
  * scanned-and-empty address is `{}`, not a row of zeroes. It replaced a single
  * `balance` number, which could not say *where* an amount was once a roll could
- * be read against more than one chain — and 1 POL is not 1 Ξ, so there is no
+ * be read against more than one chain, and 1 POL is not 1 Ξ, so there is no
  * honest way to add them into one figure.
  *
  * @typedef {object} Account
@@ -63,7 +63,7 @@ export function generateAccounts({ testMode = false, count = KEYS_PER_ROLL } = {
  *
  * Two hundred keys is about 75ms of secp256k1 on the main thread, which is a
  * dropped frame and a sheet that appears all at once with nothing to watch.
- * Generating in twenties — the same grouping the lookup uses — hands control
+ * Generating in twenties, the same grouping the lookup uses, hands control
  * back between them, so the batch fills in as it is generated and the page
  * stays responsive while it does.
  *

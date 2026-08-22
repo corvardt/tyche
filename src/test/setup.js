@@ -5,7 +5,7 @@ import { beforeEach } from 'vitest';
  * on, and is empty at the start of every test.
  *
  * `src/lib/storage.js` guards every access because Safari private mode makes
- * these calls throw, so the stub stores strings and nothing else — anything
+ * these calls throw, so the stub stores strings and nothing else: anything
  * more forgiving would let a bug through that the browser would not.
  */
 class MemoryStorage {

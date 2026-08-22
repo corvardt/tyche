@@ -8,8 +8,7 @@ import { defineConfig } from 'vitest/config';
  * Two projects, because the code divides cleanly in two and the halves want
  * different things:
  *
- * `lib` is deliberately free of the DOM — the quiet-failure logic lives there —
- * and runs under node against a `localStorage` stub, which is stricter than the
+ * `lib` is deliberately free of the DOM (the quiet-failure logic lives there) and runs under node against a `localStorage` stub, which is stricter than the
  * browser's and so catches more. It is the faster half and stays that way.
  *
  * `ui` is the hooks and components, which need a document and React. `.test.jsx`

@@ -9,7 +9,7 @@ import { CONTROL, CONTROL_ON } from './controls.jsx';
  * Everything the reader sets, in one place.
  *
  * This was the key dialog alone, with the screen and the status line living
- * under `stats` — which meant the panel that reports what the instrument has
+ * under `stats`, which meant the panel that reports what the instrument has
  * done was also the panel that changed what it does. They are separate
  * questions and they are separate panels now: `cfg` is what to set, `stats` is
  * what happened.
@@ -209,7 +209,7 @@ export default function ConfigPanel({
 
         {/* The list is the reader's, for the same reason the API key is: it is
             large, it goes stale, and which addresses are worth screening
-            against is their call. A plain text file of addresses is enough —
+            against is their call. A plain text file of addresses is enough:
             the filter is built here from whatever is in it. */}
         <div className="mt-3 flex items-center justify-between gap-3">
           <label className={`${CONTROL} cursor-pointer`}>

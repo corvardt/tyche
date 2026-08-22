@@ -8,7 +8,7 @@
  * API call only when a candidate turns up.
  *
  * Addresses are the low twenty bytes of a keccak digest, so the input is
- * already uniform — but uniform input is not the same as independent probe
+ * already uniform, but uniform input is not the same as independent probe
  * positions, and at the k this filter runs at, the difference is measurable.
  * See `probe`.
  */
@@ -54,7 +54,7 @@ function normalise(address) {
   return /^[0-9a-f]{40}$/.test(hex) ? hex : null;
 }
 
-/** 32-bit avalanche — the murmur3 finalizer. */
+/** 32-bit avalanche, the murmur3 finalizer. */
 function mix(x) {
   let h = x | 0;
   h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
@@ -68,7 +68,7 @@ function mix(x) {
  * `h2` is forced odd so repeated addition walks the entire bit array instead of
  * a subset. The `>>> 0` is load-bearing: `|` is an int32 operation, so without
  * it every word with the top bit set goes negative, which puts the bit index
- * negative too — dropped silently on write, read back as zero, and so reported
+ * negative too, dropped silently on write, read back as zero, and so reported
  * as a miss. A false negative is the one answer this filter must never give.
  */
 function words(hex) {
@@ -87,7 +87,7 @@ function words(hex) {
 /**
  * The i-th bit position for an address.
  *
- * Plain double hashing — `h1 + i·h2` straight into the modulo — is the textbook
+ * Plain double hashing, `h1 + i·h2` straight into the modulo, is the textbook
  * construction and it measurably does not hold here. It tracks the predicted
  * rate to about one in ten thousand and then comes apart: at one in a hundred
  * thousand it was twice the predicted rate, and at the one-in-a-hundred-million
@@ -114,7 +114,7 @@ function checksum(bytes) {
 /**
  * Pulls addresses out of whatever text they arrive in.
  *
- * A CSV from BigQuery or Dune, an Etherscan export, a bare list — the address
+ * A CSV from BigQuery or Dune, an Etherscan export, a bare list: the address
  * is the only part worth reading, so anything else on the line is ignored and a
  * header row costs nothing.
  *
@@ -211,7 +211,7 @@ export function parseFilter(buffer) {
  * Whether an address might be in the set.
  *
  * False is certain; true is a candidate and has to be confirmed against the
- * chain. That asymmetry is the whole point — a miss costs nothing, and misses
+ * chain. That asymmetry is the whole point: a miss costs nothing, and misses
  * are what almost every key is.
  *
  * @param {ReturnType<typeof parseFilter>} filter

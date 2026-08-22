@@ -2,8 +2,8 @@
  * Where an imported filter is kept between visits.
  *
  * IndexedDB rather than `localStorage`, which everything else here uses: a
- * filter is a few hundred kilobytes of binary, and `localStorage` holds strings
- * — base64 would inflate it by a third and spend the origin's whole quota on
+ * filter is a few hundred kilobytes of binary, and `localStorage` holds strings;
+ * base64 would inflate it by a third and spend the origin's whole quota on
  * one file. Every call resolves rather than throwing, because a browser with
  * storage disabled should cost the reader a re-import, not a broken page.
  */
@@ -15,7 +15,7 @@ const KEY = 'funded';
 /**
  * Nothing here may hang.
  *
- * IndexedDB can sit forever without firing any of its callbacks — a blocked
+ * IndexedDB can sit forever without firing any of its callbacks; a blocked
  * upgrade, a locked profile, a browser that simply never answers. The read runs
  * before the first roll, so a request that never settles is not a slow import,
  * it is an app that never rolls at all. Every operation races this.

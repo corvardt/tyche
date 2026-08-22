@@ -82,7 +82,7 @@ export function useFilter() {
       } else {
         const addresses = addressesFrom(new TextDecoder().decode(buffer));
         if (addresses.length === 0) {
-          throw new Error('No addresses in that file — expected 0x-prefixed 40-hex values.');
+          throw new Error('No addresses in that file: expected 0x-prefixed 40-hex values.');
         }
 
         const result = buildFilter(addresses, { falsePositiveRate: IMPORT_FPR });
@@ -91,7 +91,7 @@ export function useFilter() {
       }
 
       // Usable now. Keeping it for next time is worth doing but not worth
-      // waiting on — a browser with storage disabled should cost the reader a
+      // waiting on: a browser with storage disabled should cost the reader a
       // re-import, not the use of the filter they just built.
       setState({ filter, error: null, loading: false });
       emit('filter', `imported · ${describe(filter)}`);

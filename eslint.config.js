@@ -38,9 +38,9 @@ export default [
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', caughtErrors: 'none' }],
 
       // Off deliberately, and not because it is noisy. The four effects it
-      // objects to are all the same shape: something outside React changes —
-      // a roll fails for the third time, a panel opens, the reader has asked
-      // for reduced motion — and a piece of interface state has to follow it.
+      // objects to are all the same shape: something outside React changes (a
+      // roll fails for the third time, a panel opens, the reader has asked for
+      // reduced motion) and a piece of interface state has to follow it.
       // That is what these effects are for, and the alternative the rule wants
       // is to lift each one into an event handler that does not exist. Reads
       // as an error today, so it would fail the build for existing, correct

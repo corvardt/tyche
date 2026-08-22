@@ -117,7 +117,7 @@
      and paper has one ink, which is why there is no light counterpart to any
      of them and why `[data-theme='dark']` is part of every selector.
 
-     What is borrowed is the hue. The weight is not — each colour was slid
+     What is borrowed is the hue. The weight is not: each colour was slid
      along the line between it and its own ground until it sat at exactly the
      contrast the grey palette above gives that token, so switching coating
      changes the colours and nothing else: line still sits under land, land
@@ -127,7 +127,7 @@
 
      Strike is white in all three, and not by oversight. No palette here can
      reach white's distance from its own ground, so the derivation runs it to
-     the top of its range and leaves it there — which lands exactly where this
+     the top of its range and leaves it there, which lands exactly where this
      interface already stood: white is reserved, and nothing reaches it except
      an address that actually holds ether. For the same reason the bloom and
      `--ink-hot` are unchanged from dark, and are not repeated below. */
@@ -265,7 +265,7 @@
 /* ── Developing ─────────────────────────────────────────────────────────────
    A key's address, and so its identicon, exists the moment it is generated;
    what has not arrived is the balance. So a cell is not empty while it waits,
-   it is latent — the exposure is made and not yet fixed. It comes up as its
+   it is latent: the exposure is made and not yet fixed. It comes up as its
    twenty are answered, which means the sheet fills in the order the chain
    actually replies, and visibly stops filling while the rate limiter holds.
    That pause is the truth of what the instrument is doing. */
@@ -387,7 +387,7 @@
    The sheet and the field are the same tube showing two different things, so
    they change the way a channel changes: the picture pulls into a bright line
    and blooms back out. The swap happens at the bottom of the collapse, where
-   the line hides it — see `useTubeSwitch`.
+   the line hides it; see `useTubeSwitch`.
 
    `filter: brightness()` rather than a white overlay: the blow-out then comes
    off the picture itself, the way a real gun overdriving would, and it needs no
@@ -445,8 +445,8 @@
 
 /* ── The field ──────────────────────────────────────────────────────────────
    What stands where the sheet stands while the screen is running. It holds the
-   sheet's own shape — five cells across, eight past the breakpoint, as many
-   rows as the batch needs — so switching between the two moves nothing.
+   sheet's own shape (five cells across, eight past the breakpoint, as many
+   rows as the batch needs) so switching between the two moves nothing.
 
    The canvas paints nothing but grain and erases toward transparent, so the
    stock underneath it is this rule's business and never the canvas's: one less
@@ -553,7 +553,7 @@
     animation: none;
   }
 
-  /* The latent state stays: it is information, not decoration — it says the
+  /* The latent state stays: it is information, not decoration: it says the
      balance has not arrived. Only the movement between the two states goes. */
   .cell-read .blockie,
   .row-read {

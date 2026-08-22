@@ -66,7 +66,7 @@ export default function ChainPanel({ open, chains, keysPerRoll, onToggle, onClos
 
         <p className="mt-2 max-w-[52ch] text-xs leading-5 text-dim">
           Auto rolls continuously, so the limiter sets the pace and the allowance goes at one
-          speed whatever is selected here. What these switches change is what it buys — the last
+          speed whatever is selected here. What these switches change is what it buys: the last
           row. A screened roll does not call the API at all, and none of this applies to it.
         </p>
       </Group>

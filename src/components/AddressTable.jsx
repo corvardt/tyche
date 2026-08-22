@@ -16,7 +16,7 @@ import { formatEth } from '../lib/format';
 function Holding({ account, latent }) {
   // `0.0...` means read and empty. Something not yet read is a different fact,
   // and the table could not previously tell the two apart.
-  if (latent) return <span className="text-land">— — —</span>;
+  if (latent) return <span className="text-land">- - -</span>;
 
   const held = fundedChains(account);
   if (held.length === 0) return <>{formatEth(0)}</>;

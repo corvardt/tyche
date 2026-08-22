@@ -7,7 +7,7 @@
  *
  * `free` tracks whether the balance endpoints work on a free-tier key, which is
  * the only kind this app assumes anyone has. Base, OP Mainnet, Avalanche and
- * BNB are deliberately listed and deliberately marked paid — they are the ones
+ * BNB are deliberately listed and deliberately marked paid: they are the ones
  * people ask for first, and silently omitting them reads as a bug.
  *
  * Source: https://docs.etherscan.io/supported-chains

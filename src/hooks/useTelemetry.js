@@ -21,7 +21,7 @@ const MAX_BACKLOG = 8;
  * Showing each entry the instant it arrives does not work: a roll emits its
  * start, its generation timing and its first lookup inside about fifteen
  * milliseconds, and anything that renders only the newest per frame drops the
- * first two entirely — the line ends up quieter than the events behind it. So
+ * first two entirely; the line ends up quieter than the events behind it. So
  * entries queue and are shown in turn for a fixed dwell, and the queue is
  * truncated rather than allowed to lag.
  */
@@ -39,7 +39,7 @@ export function useTelemetry() {
       // Hold the line for the full dwell even with nothing waiting behind it.
       // Releasing as soon as the queue empties looks like pacing but is not:
       // a burst arriving a few milliseconds apart then renders back to back,
-      // React coalesces the updates, and the browser paints only the last —
+      // React coalesces the updates, and the browser paints only the last,
       // so the entries in between are displayed to nobody.
       timer.current = setTimeout(() => {
         timer.current = 0;

@@ -9,7 +9,7 @@ import {
  * What a given setting costs to run, unscreened.
  *
  * This used to be arithmetic on the two-second auto interval. Auto is
- * continuous now, so nothing paces the calls but the limiter — which means the
+ * continuous now, so nothing paces the calls but the limiter, which means the
  * rate is the plan's rate whatever the batch size or the chain count, and the
  * allowance goes at one speed: about ten hours to spend a free tier's day.
  *
@@ -19,7 +19,7 @@ import {
  * generating new ones. Reading N chains multiplies the chance any one key is
  * funded by roughly N and divides the keys reachable in a day by exactly N.
  * Those cancel. Multichain is not a better search; it is the same search,
- * spread — and since mainnet holds far more funded addresses than the quiet
+ * spread, and since mainnet holds far more funded addresses than the quiet
  * chains, spreading it slightly lowers the odds per call.
  *
  * None of this applies to a screened roll, which does not call the API at all.

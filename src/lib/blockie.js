@@ -8,12 +8,12 @@ import { KEYS_PER_ROLL_OPTIONS } from '../config';
  * it was being called inline in the render body of both the sheet and the
  * table. Forty encodes cost ~53ms and they ran on every render, including every
  * progress tick of a roll and again when a batch is republished with its
- * balances filled in — the same forty addresses, encoded twice a roll.
+ * balances filled in: the same forty addresses, encoded twice a roll.
  *
  * The cache is bounded because it cannot be otherwise: each data URI is ~22kB,
  * so a sheet is ~870kB and an hour of auto mode would pin about 1.5GB. LRU with
- * a small ceiling keeps the working set — the batch on screen, the batch behind
- * it, and an open favourites sheet — and lets everything else go.
+ * a small ceiling keeps the working set (the batch on screen, the batch behind
+ * it, and an open favourites sheet) and lets everything else go.
  */
 /**
  * Room for the batch on screen and the batch still behind it, at the largest
@@ -22,7 +22,7 @@ import { KEYS_PER_ROLL_OPTIONS } from '../config';
  * This was a flat 128, chosen when a roll was always forty. Adding a 200-key
  * option silently broke it: the working set no longer fit, so every repaint
  * evicted the entries it was about to ask for and the cache missed on all two
- * hundred cells — 306ms of PNG encoding per repaint, at exactly the setting
+ * hundred cells: 306ms of PNG encoding per repaint, at exactly the setting
  * where the cache mattered most. Derived from the options rather than picked,
  * so it cannot fall behind them again.
  */

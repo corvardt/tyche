@@ -13,7 +13,7 @@ import {
 
 /**
  * Addresses are the low twenty bytes of a keccak digest, so twenty random bytes
- * are distributed exactly like the real thing — and deriving real keypairs
+ * are distributed exactly like the real thing, while deriving real keypairs
  * costs a secp256k1 multiplication each, which at twenty thousand samples takes
  * far longer than the code under test.
  */
@@ -24,7 +24,7 @@ const addresses = (count) =>
 const realAddresses = (count) =>
   Array.from({ length: count }, () => computeAddress(hexlify(randomBytes(32))));
 
-/** mulberry32 — enough for uniform hex, and reproducible run to run. */
+/** mulberry32, enough for uniform hex, and reproducible run to run. */
 function rng(seed) {
   let a = seed;
   return () => {

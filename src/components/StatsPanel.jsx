@@ -106,7 +106,7 @@ export default function StatsPanel({
           />
           <Row
             label="at this rate, all of it in"
-            value={Number.isFinite(years) ? `${years.toExponential(1)} years` : '—'}
+            value={Number.isFinite(years) ? `${years.toExponential(1)} years` : '-'}
           />
           <Row
             label={screened ? 'screened, so bound by' : 'quota ceiling'}
@@ -117,7 +117,7 @@ export default function StatsPanel({
             }
             title={
               screened
-                ? 'Screening locally, the allowance no longer sets the rate — generation does'
+                ? 'Screening locally, the allowance no longer sets the rate; generation does'
                 : "Most keys a free tier's 100,000 daily calls can reach at this chain count"
             }
           />

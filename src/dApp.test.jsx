@@ -139,4 +139,22 @@ describe('history navigation', () => {
     await forward();
     expect(marker()).toBe('live');
   });
+
+  // The counter sits in the middle of the control row, so its width has to be
+  // constant: `−9 / 12` and `−10 / 12` are not the same width, and the second
+  // one used to break onto a line of its own and take the row's height with
+  // it. jsdom does no layout, so what is asserted is the rule that prevents it.
+  it('keeps the counter on one line at a two-digit offset', async () => {
+    calls = 1;
+    render(<DApp />);
+    await waitFor(() => expect(fetchBalances).toHaveBeenCalledTimes(1));
+
+    for (let i = 0; i < 11; i += 1) await rollOnce();
+    for (let i = 0; i < 10; i += 1) await back();
+
+    const counter = screen.getByText('−10 / 11');
+    expect(counter.className).toContain('whitespace-nowrap');
+    expect(counter.className).toContain('w-20');
+    expect(counter.className).toContain('shrink-0');
+  });
 });

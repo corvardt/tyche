@@ -525,8 +525,17 @@ export default function DApp() {
                   [ › ]
                 </button>
                 {/* Says how far back, because nothing else on the page does:
-                    one sheet of forty looks exactly like another. */}
-                <span className="w-14 text-2xs uppercase tracking-label text-dim">
+                    one sheet of forty looks exactly like another.
+
+                    Fixed width, no wrapping, and lining figures, for the same
+                    reason `[ roll ]` does not change its label under the
+                    field: this sits in the middle of the control row, and
+                    anything that changes width moves every control to the
+                    right of it. `−9 / 12` and `−10 / 12` are different widths,
+                    and at `w-14` the second one broke onto a line of its own
+                    and took the row's height with it. Sized for `−99 / 99`,
+                    which is as wide as it goes at a hundred deep. */}
+                <span className="w-20 shrink-0 whitespace-nowrap text-2xs uppercase tabular-nums tracking-label text-dim">
                   {held ? `−${history.offset} / ${history.depth - 1}` : 'live'}
                 </span>
               </span>

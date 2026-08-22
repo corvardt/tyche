@@ -2,18 +2,6 @@ import { memo } from 'react';
 import { CONTROL, Rule } from './controls.jsx';
 
 /**
- * The mark, matching `public/glyph.svg` stroke for stroke. Squared and drawn as
- * a path: nothing in this interface is rounded, and it must hold at 16px in a
- * tab bar where no font of ours is loaded. Same extent and open ends as the
- * unmod U, so the two are siblings rather than two unrelated logos.
- */
-const Glyph = () => (
-  <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
-    <path d="M4 3.5 H12 M8 3.5 V12.5" fill="none" stroke="currentColor" strokeWidth="2" />
-  </svg>
-);
-
-/**
  * The instrument's top edge: who is transmitting on the left, what it is doing
  * in the middle, and every control on the right.
  *
@@ -41,9 +29,6 @@ function Header({
   return (
     <header className="relative flex h-11 shrink-0 items-center justify-between gap-4 border-b border-line px-3 sm:px-4">
       <div className="flex items-baseline gap-2.5">
-        <span className="translate-y-px text-text">
-          <Glyph />
-        </span>
         <span className="glow text-base font-semibold tracking-mark text-text">TYCHE</span>
         <span className="hidden text-2xs uppercase tracking-label text-dim sm:inline">
           &#47;&#47; random keys
